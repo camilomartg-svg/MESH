@@ -19,6 +19,7 @@ export interface Task {
   notes: string;
   targetDeliveryDate: string | null; // YYYY-MM-DD
   isDelayed: boolean;
+  isParallel?: boolean;
 }
 
 export interface Modeler {
@@ -57,6 +58,8 @@ export interface Drawing {
   observations: string;
   deliveryDate: string | null; // YYYY-MM-DD
   series: string; // e.g. "SERIE 100: ARQUITECTURA GENERAL (AUT)"
+  taskId?: string | null;
+  assigneeId?: string | null;
 }
 
 export interface ProjectData {

@@ -5,6 +5,7 @@ import { Users, Plus, Check, Power, Palette } from 'lucide-react';
 interface ModelersSettingsProps {
   modelers: Modeler[];
   onUpdateModelers: (modelers: Modeler[]) => void;
+  isDarkMode?: boolean;
 }
 
 const PRESET_COLORS = [
@@ -18,7 +19,7 @@ const PRESET_COLORS = [
   '#ca8a04', // Yellow-600
 ];
 
-export default function ModelersSettings({ modelers, onUpdateModelers }: ModelersSettingsProps) {
+export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMode = true }: ModelersSettingsProps) {
   
   const handleToggleActive = (id: string) => {
     const updated = modelers.map(m => {
@@ -69,14 +70,20 @@ export default function ModelersSettings({ modelers, onUpdateModelers }: Modeler
   };
 
   return (
-    <div className="bg-[#0F1115] border border-white/10 rounded-2xl p-6 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-5 mb-5">
+    <div className={`border rounded-2xl p-6 shadow-xl transition-all ${
+      isDarkMode 
+        ? 'bg-[#0F1115] border-white/10' 
+        : 'bg-white border-slate-200/80 shadow-slate-100/80 shadow-md'
+    }`}>
+      <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-5 mb-5 ${
+        isDarkMode ? 'border-white/10' : 'border-slate-100'
+      }`}>
         <div className="flex items-center gap-3">
           <div className="p-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-xl">
             <Users size={22} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Cargar Modeladores Revit</h2>
+            <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Cargar Modeladores Revit</h2>
             <p className="text-xs text-slate-500">
               Define cuántas personas van a modelar. Cada modelador activo procesará su lista de tareas asignadas secuencialmente.
             </p>
@@ -86,7 +93,11 @@ export default function ModelersSettings({ modelers, onUpdateModelers }: Modeler
         <button
           onClick={handleAddModeler}
           disabled={modelers.length >= 8}
-          className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-200 text-black font-extrabold uppercase tracking-widest text-[11px] rounded-xl transition shadow-md shadow-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+          className={`flex items-center gap-2 px-4 py-2 font-extrabold uppercase tracking-widest text-[11px] rounded-xl transition shadow-md disabled:opacity-40 disabled:cursor-not-allowed ${
+            isDarkMode 
+              ? 'bg-white hover:bg-slate-200 text-black shadow-white/5' 
+              : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200'
+          }`}
         >
           <Plus size={14} strokeWidth={3} />
           Agregar Modelador
@@ -99,8 +110,12 @@ export default function ModelersSettings({ modelers, onUpdateModelers }: Modeler
             key={modeler.id}
             className={`border rounded-2xl p-5 flex flex-col justify-between transition ${
               modeler.active
-                ? 'border-white/10 bg-[#16191D] shadow-sm'
-                : 'border-white/5 bg-[#0F1115] opacity-50'
+                ? isDarkMode
+                  ? 'border-white/10 bg-[#16191D] shadow-sm'
+                  : 'border-slate-200 bg-slate-50/50 shadow-sm'
+                : isDarkMode
+                ? 'border-white/5 bg-[#0F1115] opacity-50'
+                : 'border-slate-100 bg-slate-100/40 opacity-50'
             }`}
           >
             {/* Header: Name and Status Toggle */}
@@ -113,7 +128,9 @@ export default function ModelersSettings({ modelers, onUpdateModelers }: Modeler
                   type="text"
                   value={modeler.name}
                   onChange={(e) => handleUpdateName(modeler.id, e.target.value)}
-                  className="w-full font-semibold text-white border-b border-transparent hover:border-white/10 focus:border-amber-500 focus:outline-none py-0.5 text-sm bg-transparent transition"
+                  className={`w-full font-semibold border-b border-transparent focus:border-amber-500 focus:outline-none py-0.5 text-sm bg-transparent transition ${
+                    isDarkMode ? 'text-white hover:border-white/10' : 'text-slate-900 hover:border-slate-200'
+                  }`}
                   placeholder="Nombre de la persona"
                 />
               </div>
@@ -121,10 +138,12 @@ export default function ModelersSettings({ modelers, onUpdateModelers }: Modeler
               <button
                 onClick={() => handleToggleActive(modeler.id)}
                 title={modeler.active ? 'Desactivar Modelador' : 'Activar Modelador'}
-                className={`p-2 rounded-xl transition ${
+                className={`p-2 rounded-xl border transition ${
                   modeler.active
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
-                    : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                    : isDarkMode
+                    ? 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                    : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
                 }`}
               >
                 <Power size={15} />
@@ -132,7 +151,7 @@ export default function ModelersSettings({ modelers, onUpdateModelers }: Modeler
             </div>
 
             {/* Colors picker selection */}
-            <div className="mt-4 pt-4 border-t border-white/5">
+            <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Palette size={11} className="text-amber-500" /> Color en Calendario
               </label>

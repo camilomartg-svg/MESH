@@ -394,3 +394,92 @@ export const DEFAULT_PROJECT_DATA: ProjectData = {
     { id: 'DTE-1020', code: 'DTE-1020', name: 'Detalles de Impermeabilización', scale: '1:05', status: 'Pendiente', observations: 'Detalles de sumideros, ruanas, impermeabilización de techos y gárgolas.', deliveryDate: null, series: 'SERIE 800: DETALLES Y CORTES POR FACHADA (DTE)' }
   ],
 };
+
+export function getInitialTaskIdForDrawing(code: string): string | null {
+  if (code.startsWith('AUT-101')) return 'env-1';
+  if (code.startsWith('AUT-102')) return 'struct-5';
+  if (code.startsWith('AUT-103')) return 'env-1';
+  if (code.startsWith('AUT-104')) return 'env-1';
+  if (code.startsWith('AUT-105')) return 'env-1';
+  if (code.startsWith('AUT-106')) return 'env-1';
+  if (code.startsWith('AUT-107')) return 'env-1';
+  if (code.startsWith('AUT-108')) return 'env-2';
+  if (code.startsWith('AUT-109')) return 'env-5';
+  if (code.startsWith('AUT-110')) return 'circ-1';
+  if (code.startsWith('AUT-111')) return 'circ-2';
+  if (code.startsWith('AUT-112')) return 'env-1';
+  if (code.startsWith('AUT-113')) return 'env-1';
+  if (code.startsWith('AUT-114')) return 'env-1';
+
+  if (code.startsWith('AM-201')) return 'struct-1';
+  if (code.startsWith('AM-202')) return 'div-1';
+  if (code.startsWith('AM-203')) return 'div-1';
+  if (code.startsWith('AM-204')) return 'div-1';
+  if (code.startsWith('AM-205')) return 'div-1';
+  if (code.startsWith('AM-206')) return 'div-1';
+  if (code.startsWith('AM-207')) return 'env-2';
+  if (code.startsWith('AM-208')) return 'env-5';
+  if (code.startsWith('AM-220')) return 'div-1';
+
+  if (code.startsWith('AC-301')) return 'struct-5';
+  if (code.startsWith('AC-302')) return 'div-3';
+  if (code.startsWith('AC-303')) return 'div-3';
+  if (code.startsWith('AC-304')) return 'div-3';
+  if (code.startsWith('AC-305')) return 'div-3';
+  if (code.startsWith('AC-306')) return 'div-3';
+  if (code.startsWith('AC-307')) return 'env-5';
+  if (code.startsWith('AC-320')) return 'div-3';
+
+  if (code.startsWith('CC-401')) return 'div-2';
+  if (code.startsWith('CC-402')) return 'div-2';
+  if (code.startsWith('CC-403')) return 'div-2';
+  if (code.startsWith('CC-404')) return 'div-2';
+  if (code.startsWith('CC-405')) return 'div-2';
+  if (code.startsWith('CC-406')) return 'env-5';
+  if (code.startsWith('CC-420')) return 'div-2';
+
+  if (code.startsWith('ZC-501')) return 'div-1';
+  if (code.startsWith('ZC-502')) return 'circ-1';
+  if (code.startsWith('ZC-503')) return 'circ-1';
+  if (code.startsWith('ZC-504')) return 'circ-2';
+
+  if (code.startsWith('AP-601-A')) return 'div-1';
+  if (code.startsWith('AP-602-A')) return 'div-1';
+  if (code.startsWith('AP-603-A')) return 'div-3';
+  if (code.startsWith('AP-604-A')) return 'div-3';
+  if (code.startsWith('AP-605-A')) return 'div-1';
+
+  if (code.startsWith('CAR-701')) return 'div-1';
+  if (code.startsWith('CAR-702')) return 'env-3';
+  if (code.startsWith('CAR-703')) return 'env-3';
+  if (code.startsWith('CAR-704')) return 'struct-1';
+  if (code.startsWith('CAR-705')) return 'env-3';
+  if (code.startsWith('CAR-706')) return 'circ-1';
+
+  if (code.startsWith('DTE-821')) return 'struct-1';
+  if (code.startsWith('DTE-822')) return 'env-5';
+  if (code.startsWith('DTE-823')) return 'env-5';
+  if (code.startsWith('DTE-824')) return 'env-5';
+  if (code.startsWith('DTE-825')) return 'rem-2';
+  if (code.startsWith('DTE-826')) return 'rem-1';
+
+  if (code.startsWith('UTI-901')) return 'div-1';
+  if (code.startsWith('UTI-902')) return 'struct-1';
+  if (code.startsWith('UTI-903')) return 'struct-1';
+  if (code.startsWith('UTI-904')) return 'div-1';
+
+  if (code.startsWith('DTE-1001')) return 'env-1';
+  if (code.startsWith('DTE-1002')) return 'env-1';
+  if (code.startsWith('DTE-1003')) return 'env-1';
+  if (code.startsWith('DTE-1004')) return 'env-1';
+  if (code.startsWith('DTE-1005')) return 'env-1';
+  if (code.startsWith('DTE-1006')) return 'circ-2';
+  if (code.startsWith('DTE-1007')) return 'env-2';
+  if (code.startsWith('DTE-1008')) return 'env-1';
+  if (code.startsWith('DTE-1009')) return 'env-1';
+  if (code.startsWith('DTE-1010')) return 'env-1';
+  if (code.startsWith('DTE-1011')) return 'circ-1';
+  if (code.startsWith('DTE-1020')) return 'env-5';
+
+  return null;
+}

@@ -9,6 +9,7 @@ interface TaskFormProps {
   onCancel: () => void;
   onDelete?: (id: string) => void;
   suggestedTasksByCategory: { [key in BimCategory]: string[] };
+  isDarkMode?: boolean;
 }
 
 export default function TaskForm({
@@ -18,6 +19,7 @@ export default function TaskForm({
   onCancel,
   onDelete,
   suggestedTasksByCategory,
+  isDarkMode = false,
 }: TaskFormProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<BimCategory>('ELEMENTOS ESTRUCTURALES');
@@ -28,6 +30,7 @@ export default function TaskForm({
   const [assigneeId, setAssigneeId] = useState<string>('');
   const [targetDeliveryDate, setTargetDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [isParallel, setIsParallel] = useState(false);
 
   // Suggestions helper
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -43,6 +46,7 @@ export default function TaskForm({
       setAssigneeId(task.assigneeId || '');
       setTargetDeliveryDate(task.targetDeliveryDate || '');
       setNotes(task.notes);
+      setIsParallel(task.isParallel || false);
     } else {
       // Set default priority as max current priority + 1 if adding
       setName('');
@@ -52,6 +56,7 @@ export default function TaskForm({
       setAssigneeId('');
       setTargetDeliveryDate('');
       setNotes('');
+      setIsParallel(false);
     }
   }, [task]);
 
@@ -73,6 +78,7 @@ export default function TaskForm({
       scheduledStart: task?.scheduledStart || null,
       scheduledEnd: task?.scheduledEnd || null,
       isDelayed: task?.isDelayed || false,
+      isParallel,
     });
   };
 
@@ -93,23 +99,33 @@ export default function TaskForm({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 max-h-[85vh] overflow-y-auto">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-        <h3 className="text-lg font-bold text-slate-800">
+    <div className={`rounded-2xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto border transition-all duration-200 ${
+      isDarkMode 
+        ? 'bg-[#0F1115] border-white/10 text-slate-300' 
+        : 'bg-white border-slate-200 text-slate-800'
+    }`}>
+      <div className={`flex items-center justify-between border-b pb-4 mb-4 ${
+        isDarkMode ? 'border-white/10' : 'border-slate-100'
+      }`}>
+        <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
           {task ? 'Editar Tarea BIM' : 'Crear Nueva Tarea BIM'}
         </h3>
         <button
           onClick={onCancel}
-          className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition"
+          className={`p-1.5 rounded-full transition ${
+            isDarkMode ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'
+          }`}
         >
           <X size={18} />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 text-sm text-slate-700">
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
         {/* Category */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+          <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+            isDarkMode ? 'text-slate-400' : 'text-slate-500'
+          }`}>
             Categoría del Elemento Revit
           </label>
           <select
@@ -118,7 +134,11 @@ export default function TaskForm({
               setCategory(e.target.value as BimCategory);
               setName('');
             }}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+              isDarkMode 
+                ? 'bg-[#16191D] border-white/10 text-slate-200 focus:border-white focus:ring-white' 
+                : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-black focus:ring-black'
+            }`}
           >
             <option value="ELEMENTOS ESTRUCTURALES">1. ELEMENTOS ESTRUCTURALES</option>
             <option value="ENVOLVENTE ARQUITECTÓNICA">2. ENVOLVENTE ARQUITECTÓNICA</option>
@@ -131,13 +151,17 @@ export default function TaskForm({
         {/* Task Name */}
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <label className={`block text-xs font-semibold uppercase tracking-wider ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
               Nombre de la Labor
             </label>
             <button
               type="button"
               onClick={() => setShowSuggestions(!showSuggestions)}
-              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition"
+              className={`text-xs flex items-center gap-1 font-semibold transition ${
+                isDarkMode ? 'text-slate-200 hover:text-white' : 'text-slate-900 hover:text-black'
+              }`}
             >
               <Sparkles size={12} />
               Predefinidos Revit
@@ -149,12 +173,22 @@ export default function TaskForm({
             placeholder="Ej: Muros de Contención, Escalera Principal..."
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+              isDarkMode 
+                ? 'bg-[#16191D] border-white/10 text-white placeholder-slate-600 focus:border-white focus:ring-white' 
+                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-black focus:ring-black'
+            }`}
           />
 
           {showSuggestions && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
-              <div className="px-3 py-1 text-xs font-semibold text-slate-400 bg-slate-50 border-b border-slate-100">
+            <div className={`absolute z-10 w-full mt-1 border rounded-xl shadow-lg max-h-48 overflow-y-auto py-1 ${
+              isDarkMode 
+                ? 'bg-[#16191D] border-white/10 text-slate-200 shadow-black/50' 
+                : 'bg-white border-slate-200 text-slate-700'
+            }`}>
+              <div className={`px-3 py-1 text-xs font-semibold border-b ${
+                isDarkMode ? 'text-slate-400 bg-white/5 border-white/5' : 'text-slate-400 bg-slate-50 border-slate-100'
+              }`}>
                 Sugerencias para esta categoría:
               </div>
               {suggestedTasksByCategory[category]?.map((sug) => (
@@ -162,7 +196,9 @@ export default function TaskForm({
                   key={sug}
                   type="button"
                   onClick={() => selectSuggestion(sug)}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 font-medium transition text-xs"
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition ${
+                    isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'
+                  }`}
                 >
                   {sug}
                 </button>
@@ -176,7 +212,9 @@ export default function TaskForm({
 
         {/* Description */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+          <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+            isDarkMode ? 'text-slate-400' : 'text-slate-500'
+          }`}>
             Descripción / Ubicación del Proyecto
           </label>
           <textarea
@@ -184,14 +222,20 @@ export default function TaskForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+              isDarkMode 
+                ? 'bg-[#16191D] border-white/10 text-white placeholder-slate-600 focus:border-white focus:ring-white' 
+                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-black focus:ring-black'
+            }`}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           {/* Duration in days */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
               Días de Trabajo (Laborables)
             </label>
             <input
@@ -201,14 +245,20 @@ export default function TaskForm({
               required
               value={durationDays}
               onChange={(e) => setDurationDays(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+              }`}
             />
             <p className="text-[10px] text-slate-400 mt-1">Excluye fines de semana y festivos en Colombia.</p>
           </div>
 
           {/* Priority */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
               Prioridad de Ejecución
             </label>
             <input
@@ -217,7 +267,11 @@ export default function TaskForm({
               required
               value={priority}
               onChange={(e) => setPriority(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+              }`}
             />
             <p className="text-[10px] text-slate-400 mt-1">Define el orden secuencial. 1 = Primero.</p>
           </div>
@@ -226,13 +280,19 @@ export default function TaskForm({
         <div className="grid grid-cols-2 gap-4">
           {/* Status */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
               Estado de Avance
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+              }`}
             >
               <option value="Pendiente">⬜ Pendiente</option>
               <option value="Modelado">✅ Modelado</option>
@@ -242,13 +302,19 @@ export default function TaskForm({
 
           {/* Modeler Assignee */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
               Asignado a
             </label>
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+              }`}
             >
               <option value="">✨ Auto-asignar por Carga</option>
               {modelers.map((m) => (
@@ -260,23 +326,58 @@ export default function TaskForm({
           </div>
         </div>
 
+        {/* Programar en Paralelo */}
+        <div className={`border rounded-xl p-3 flex items-center justify-between ${
+          isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'
+        }`}>
+          <div className="max-w-[85%]">
+            <label htmlFor="isParallel" className={`block text-xs font-bold cursor-pointer ${
+              isDarkMode ? 'text-slate-200' : 'text-slate-700'
+            }`}>
+              Programar en paralelo
+            </label>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              No consume ni bloquea el tiempo secuencial de la cola del modelador (permite solaparse con otras actividades).
+            </span>
+          </div>
+          <input
+            id="isParallel"
+            type="checkbox"
+            checked={isParallel}
+            onChange={(e) => setIsParallel(e.target.checked)}
+            className={`rounded w-4 h-4 cursor-pointer focus:ring-0 ${
+              isDarkMode 
+                ? 'border-white/10 bg-[#16191D] text-white' 
+                : 'border-slate-300 text-black'
+            }`}
+          />
+        </div>
+
         {/* Target Delivery Date (Fecha de entrega) */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+          <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+            isDarkMode ? 'text-slate-400' : 'text-slate-500'
+          }`}>
             Fecha Límite de Entrega (Opcional)
           </label>
           <input
             type="date"
             value={targetDeliveryDate}
             onChange={(e) => setTargetDeliveryDate(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+              isDarkMode 
+                ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+            }`}
           />
           <p className="text-[10px] text-slate-400 mt-1">Se usará para alertar retrasos si se supera esta fecha.</p>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+          <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+            isDarkMode ? 'text-slate-400' : 'text-slate-500'
+          }`}>
             Notas de Coordinación / Observaciones
           </label>
           <textarea
@@ -284,17 +385,25 @@ export default function TaskForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+              isDarkMode 
+                ? 'bg-[#16191D] border-white/10 text-white placeholder-slate-600 focus:border-white focus:ring-white' 
+                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-black focus:ring-black'
+            }`}
           />
         </div>
 
         {/* Actions buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100 gap-3">
+        <div className={`flex items-center justify-between pt-4 border-t gap-3 ${
+          isDarkMode ? 'border-white/10' : 'border-slate-100'
+        }`}>
           {task && onDelete ? (
             <button
               type="button"
               onClick={() => onDelete(task.id)}
-              className="px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold rounded-xl transition"
+              className={`px-4 py-2 font-semibold rounded-xl transition ${
+                isDarkMode ? 'text-rose-400 hover:bg-rose-500/10' : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+              }`}
             >
               Eliminar
             </button>
@@ -306,13 +415,21 @@ export default function TaskForm({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 font-semibold rounded-xl text-slate-600 transition"
+              className={`px-4 py-2 border font-semibold rounded-xl transition ${
+                isDarkMode 
+                  ? 'border-white/10 hover:bg-white/5 text-slate-300' 
+                  : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+              }`}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition shadow-md shadow-blue-200"
+              className={`px-5 py-2 font-semibold rounded-xl transition shadow-sm ${
+                isDarkMode 
+                  ? 'bg-white text-black hover:bg-slate-200' 
+                  : 'bg-black text-white hover:bg-neutral-800'
+              }`}
             >
               {task ? 'Guardar Cambios' : 'Agregar Labor'}
             </button>

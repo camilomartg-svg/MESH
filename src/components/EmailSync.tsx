@@ -9,6 +9,7 @@ interface EmailSyncProps {
   emailLogs: EmailLog[];
   onUpdateSettings: (settings: ProjectSettings) => void;
   onTriggerEmail: (to: string, subject: string, body: string) => Promise<any>;
+  isDarkMode?: boolean;
 }
 
 export default function EmailSync({
@@ -18,6 +19,7 @@ export default function EmailSync({
   emailLogs,
   onUpdateSettings,
   onTriggerEmail,
+  isDarkMode = true,
 }: EmailSyncProps) {
   const [activeTab, setActiveTab] = useState<'status' | 'config' | 'logs'>('status');
   
@@ -131,14 +133,20 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
   };
 
   return (
-    <div className="bg-[#0F1115] border border-white/10 rounded-2xl p-6 shadow-xl">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-white/10 pb-5 mb-5">
+    <div className={`border rounded-2xl p-6 shadow-xl transition-all ${
+      isDarkMode 
+        ? 'bg-[#0F1115] border-white/10' 
+        : 'bg-white border-slate-200/80 shadow-slate-100/80 shadow-md'
+    }`}>
+      <div className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b pb-5 mb-5 ${
+        isDarkMode ? 'border-white/10' : 'border-slate-100'
+      }`}>
         <div className="flex items-center gap-3">
           <div className="p-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl">
             <Mail size={22} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Sincronización de Correo y Alertas</h2>
+            <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Sincronización de Correo y Alertas</h2>
             <p className="text-xs text-slate-500">
               Administra el envío automático de notificaciones de retraso a tu email ante diferencias de calendario.
             </p>
@@ -146,11 +154,15 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
         </div>
 
         {/* Tab Selection */}
-        <div className="flex bg-white/5 p-1 border border-white/10 rounded-xl self-start lg:self-center">
+        <div className={`flex p-1 border rounded-xl self-start lg:self-center transition-all ${
+          isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200 shadow-sm'
+        }`}>
           <button
             onClick={() => setActiveTab('status')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              activeTab === 'status' ? 'bg-[#16191D] text-white border border-white/10 shadow-sm' : 'text-slate-500 hover:text-white'
+              activeTab === 'status' 
+                ? (isDarkMode ? 'bg-[#16191D] text-white border border-white/10 shadow-sm' : 'bg-white text-slate-900 border border-slate-200 shadow-sm') 
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Tareas Retrasadas ({delayedTasks.length})
@@ -158,7 +170,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
           <button
             onClick={() => setActiveTab('config')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              activeTab === 'config' ? 'bg-[#16191D] text-white border border-white/10 shadow-sm' : 'text-slate-500 hover:text-white'
+              activeTab === 'config' 
+                ? (isDarkMode ? 'bg-[#16191D] text-white border border-white/10 shadow-sm' : 'bg-white text-slate-900 border border-slate-200 shadow-sm') 
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Configuración Correo (SMTP)
@@ -166,7 +180,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
           <button
             onClick={() => setActiveTab('logs')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              activeTab === 'logs' ? 'bg-[#16191D] text-white border border-white/10 shadow-sm' : 'text-slate-500 hover:text-white'
+              activeTab === 'logs' 
+                ? (isDarkMode ? 'bg-[#16191D] text-white border border-white/10 shadow-sm' : 'bg-white text-slate-900 border border-slate-200 shadow-sm') 
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Historial de Envíos ({emailLogs.length})
@@ -175,7 +191,7 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
       </div>
 
       {responseMsg && (
-        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium rounded-xl flex items-center gap-2">
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-medium rounded-xl flex items-center gap-2">
           <CheckCircle size={14} />
           <span>{responseMsg}</span>
         </div>
@@ -184,13 +200,15 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
       {/* VIEW: STATUS / DELAYED TASKS */}
       {activeTab === 'status' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-rose-950/20 border border-rose-500/30 rounded-2xl p-4">
-            <div className="flex items-start gap-2.5 text-xs text-rose-200">
+          <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-2xl p-4 ${
+            isDarkMode ? 'bg-rose-950/20 border-rose-500/30' : 'bg-rose-50 border-rose-200'
+          }`}>
+            <div className={`flex items-start gap-2.5 text-xs ${isDarkMode ? 'text-rose-200' : 'text-rose-900'}`}>
               <AlertTriangle className="text-rose-500 flex-shrink-0 mt-0.5" size={18} />
               <div>
-                <p className="font-bold text-rose-300">Retrasos detectados en el cronograma</p>
-                <p className="text-slate-400 mt-0.5">
-                  Hay <strong className="text-white">{delayedTasks.length} labores</strong> que no se entregarán a tiempo según sus prioridades y días laborables calculados.
+                <p className="font-bold">Retrasos detectados en el cronograma</p>
+                <p className={`mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Hay <strong className={isDarkMode ? 'text-white' : 'text-slate-900'}>{delayedTasks.length} labores</strong> que no se entregarán a tiempo según sus prioridades y días laborables calculados.
                 </p>
               </div>
             </div>
@@ -198,7 +216,7 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
               <button
                 onClick={triggerAllAlerts}
                 disabled={sendAllState === 'sending'}
-                className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs transition disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs transition disabled:opacity-50 shadow-sm"
               >
                 <Play size={13} />
                 {sendAllState === 'sending' ? 'Enviando...' : 'Enviar Alertas Generales'}
@@ -207,10 +225,12 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
           </div>
 
           {delayedTasks.length > 0 ? (
-            <div className="border border-white/10 rounded-2xl overflow-hidden shadow-sm">
+            <div className={`border rounded-2xl overflow-hidden shadow-sm ${isDarkMode ? 'border-white/10' : 'border-slate-200 bg-white'}`}>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left text-slate-300">
-                  <thead className="text-[10px] uppercase font-bold text-slate-400 bg-[#16191D] border-b border-white/10">
+                <table className="w-full text-xs text-left">
+                  <thead className={`text-[10px] uppercase font-bold border-b ${
+                    isDarkMode ? 'text-slate-400 bg-[#16191D] border-white/10' : 'text-slate-500 bg-slate-50 border-slate-100'
+                  }`}>
                     <tr>
                       <th className="px-4 py-3">Prioridad / Labor</th>
                       <th className="px-4 py-3">Categoría</th>
@@ -220,32 +240,36 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                       <th className="px-4 py-3 text-right">Acción</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className={`divide-y ${isDarkMode ? 'divide-white/5 text-slate-300' : 'divide-slate-100 text-slate-700'}`}>
                     {delayedTasks.map((task) => (
-                      <tr key={task.id} className="hover:bg-white/5 transition">
+                      <tr key={task.id} className={isDarkMode ? 'hover:bg-white/5 transition' : 'hover:bg-slate-50/50 transition'}>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-[10px]">
+                            <span className="w-5 h-5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center font-bold text-[10px]">
                               {task.priority}
                             </span>
-                            <span className="font-semibold text-white">{task.name}</span>
+                            <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{task.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 font-medium text-slate-400">{task.category}</td>
-                        <td className="px-4 py-3.5 font-semibold text-slate-300">
+                        <td className="px-4 py-3.5 font-medium text-slate-500">{task.category}</td>
+                        <td className={`px-4 py-3.5 font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>
                           {getModelerName(task.assigneeId)}
                         </td>
-                        <td className="px-4 py-3.5 text-rose-400 font-bold">
+                        <td className="px-4 py-3.5 text-rose-500 font-bold">
                           {task.targetDeliveryDate || 'Sin fecha'}
                         </td>
-                        <td className="px-4 py-3.5 text-amber-400 font-semibold">
+                        <td className="px-4 py-3.5 text-amber-500 font-semibold">
                           📅 {task.scheduledEnd}
                         </td>
                         <td className="px-4 py-3.5 text-right">
                           <button
                             onClick={() => triggerSingleAlert(task)}
                             disabled={sendingId === task.id}
-                            className="px-3 py-1.5 bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white rounded-lg text-[10px] font-bold transition disabled:opacity-50"
+                            className={`px-3 py-1.5 border rounded-lg text-[10px] font-bold transition disabled:opacity-50 ${
+                              isDarkMode
+                                ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm'
+                            }`}
                           >
                             {sendingId === task.id ? 'Enviando...' : 'Enviar Alerta'}
                           </button>
@@ -257,9 +281,11 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 bg-[#0A0A0C] rounded-2xl border border-white/5">
-              <CheckCircle className="text-emerald-500 mx-auto mb-2.5 animate-pulse" size={32} />
-              <p className="text-sm font-semibold text-white">¡Cronograma al día!</p>
+            <div className={`text-center py-8 rounded-2xl border ${
+              isDarkMode ? 'bg-[#0A0A0C] border-white/5' : 'bg-slate-50 border-slate-200/60'
+            }`}>
+              <CheckCircle className="text-emerald-500 mx-auto mb-2.5" size={32} />
+              <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>¡Cronograma al día!</p>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                 No hay labores retrasadas detectadas. Todas las fechas calculadas por el calendario cumplen con los plazos comprometidos.
               </p>
@@ -270,8 +296,10 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
 
       {/* VIEW: CONFIGURATION / SMTP SETTINGS */}
       {activeTab === 'config' && (
-        <form onSubmit={handleSaveSettings} className="space-y-4 max-w-xl text-xs text-slate-300">
-          <div className="p-3 bg-emerald-500/5 text-emerald-300 border border-emerald-500/20 rounded-xl flex items-center gap-2 mb-3">
+        <form onSubmit={handleSaveSettings} className={`space-y-4 max-w-xl text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+          <div className={`p-3 border rounded-xl flex items-center gap-2 mb-3 ${
+            isDarkMode ? 'bg-emerald-500/5 text-emerald-300 border-emerald-500/20' : 'bg-emerald-50/50 text-emerald-800 border-emerald-200/50'
+          }`}>
             <ShieldCheck size={16} className="text-emerald-500 flex-shrink-0" />
             <span>
               <strong>Por defecto, las alertas de demo son funcionales y seguras.</strong> Si no ingresas credenciales, se usará una cuenta segura de simulación de Ethereal con enlaces visuales interactivos.
@@ -288,7 +316,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                 required
                 value={sendToEmail}
                 onChange={(e) => setSendToEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-white/10 bg-[#16191D] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-white text-sm"
+                className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm ${
+                  isDarkMode ? 'border-white/10 bg-[#16191D] text-white' : 'border-slate-200 bg-white text-slate-800'
+                }`}
               />
               <p className="text-[10px] text-slate-500 mt-1">Correo de recepción del Coordinador BIM.</p>
             </div>
@@ -299,15 +329,17 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                   type="checkbox"
                   checked={autoAlerts}
                   onChange={(e) => setAutoAlerts(e.target.checked)}
-                  className="rounded border-white/10 bg-[#16191D] text-amber-500 focus:ring-amber-500"
+                  className={`rounded focus:ring-amber-500 ${
+                    isDarkMode ? 'border-white/10 bg-[#16191D] text-amber-500' : 'border-slate-300 bg-white text-amber-500'
+                  }`}
                 />
-                <span className="font-semibold text-slate-300">¿Alertas automáticas en segundo plano?</span>
+                <span className={`font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>¿Alertas automáticas en segundo plano?</span>
               </label>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/5">
-            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-1.5">
+          <div className={`pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+            <h3 className={`text-sm font-bold mb-3 flex items-center gap-1.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               <Settings size={14} className="text-amber-500" /> Configuración SMTP Personalizada (Opcional)
             </h3>
 
@@ -322,7 +354,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                     placeholder="Ej: smtp.gmail.com"
                     value={smtpHost}
                     onChange={(e) => setSmtpHost(e.target.value)}
-                    className="w-full px-3 py-2 border border-white/10 bg-[#16191D] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-white"
+                    className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                      isDarkMode ? 'border-white/10 bg-[#16191D] text-white' : 'border-slate-200 bg-white text-slate-850'
+                    }`}
                   />
                 </div>
                 <div>
@@ -334,7 +368,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                     placeholder="587"
                     value={smtpPort}
                     onChange={(e) => setSmtpPort(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-white/10 bg-[#16191D] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-white"
+                    className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                      isDarkMode ? 'border-white/10 bg-[#16191D] text-white' : 'border-slate-200 bg-white text-slate-850'
+                    }`}
                   />
                 </div>
               </div>
@@ -349,7 +385,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                     placeholder="Ej: micorreo@gmail.com"
                     value={smtpUser}
                     onChange={(e) => setSmtpUser(e.target.value)}
-                    className="w-full px-3 py-2 border border-white/10 bg-[#16191D] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-white"
+                    className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                      isDarkMode ? 'border-white/10 bg-[#16191D] text-white' : 'border-slate-200 bg-white text-slate-850'
+                    }`}
                   />
                 </div>
                 <div>
@@ -361,7 +399,9 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                     placeholder="Contraseña"
                     value={smtpPass}
                     onChange={(e) => setSmtpPass(e.target.value)}
-                    className="w-full px-3 py-2 border border-white/10 bg-[#16191D] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-white"
+                    className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                      isDarkMode ? 'border-white/10 bg-[#16191D] text-white' : 'border-slate-200 bg-white text-slate-850'
+                    }`}
                   />
                 </div>
               </div>
@@ -371,7 +411,11 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
           <div className="pt-4 flex justify-end">
             <button
               type="submit"
-              className="px-5 py-2.5 bg-white hover:bg-slate-200 text-black font-extrabold uppercase tracking-widest text-xs rounded-xl transition shadow-md shadow-white/5"
+              className={`px-5 py-2.5 font-extrabold uppercase tracking-widest text-xs rounded-xl transition shadow-md ${
+                isDarkMode 
+                  ? 'bg-white hover:bg-slate-200 text-black shadow-white/5' 
+                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200'
+              }`}
             >
               Guardar Configuración
             </button>
@@ -390,13 +434,17 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
           {emailLogs.length > 0 ? (
             <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {emailLogs.map((log) => (
-                <div key={log.id} className="p-4 bg-[#16191D] border border-white/10 rounded-2xl text-xs space-y-2 hover:bg-white/5 transition">
+                <div key={log.id} className={`p-4 border rounded-2xl text-xs space-y-2 transition ${
+                  isDarkMode 
+                    ? 'bg-[#16191D] border-white/10 hover:bg-white/5' 
+                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50 text-slate-700'
+                }`}>
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[10px] text-slate-500 font-mono">
                       📅 {new Date(log.timestamp).toLocaleString('es-CO')}
                     </span>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold text-[9px] ${
-                      log.status === 'sent' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      log.status === 'sent' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
                     }`}>
                       {log.status === 'sent' ? <CheckCircle size={10} /> : <XCircle size={10} />}
                       {log.status === 'sent' ? 'Enviado' : 'Fallido'}
@@ -404,24 +452,26 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                   </div>
 
                   <div>
-                    <span className="font-bold text-white block">Asunto: {log.subject}</span>
-                    <span className="text-slate-400 font-medium mt-0.5 block">Destinatario: {log.to}</span>
+                    <span className={`font-bold block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Asunto: {log.subject}</span>
+                    <span className="text-slate-500 font-medium mt-0.5 block">Destinatario: {log.to}</span>
                   </div>
 
-                  <p className="text-[10px] text-slate-300 font-mono whitespace-pre-wrap bg-[#0A0A0C] border border-white/10 p-2.5 rounded-lg max-h-24 overflow-y-auto">
+                  <p className={`text-[10px] font-mono whitespace-pre-wrap border p-2.5 rounded-lg max-h-24 overflow-y-auto ${
+                    isDarkMode ? 'bg-[#0A0A0C] border-white/10 text-slate-300' : 'bg-white border-slate-200 text-slate-650'
+                  }`}>
                     {log.body}
                   </p>
 
                   {/* If ethereal link generated */}
                   {log.errorMessage && log.errorMessage.includes('ethereal.email') && (
-                    <div className="pt-1.5 border-t border-white/5 flex items-center justify-between">
+                    <div className={`pt-1.5 border-t flex items-center justify-between ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
                       <span className="text-[10px] text-slate-500">Bandeja de Entrada de Prueba (Ethereal):</span>
                       <a
                         href={log.errorMessage.split('aquí: ')[1] || '#'}
                         target="_blank"
                         referrerPolicy="no-referrer"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-bold text-[10px] hover:underline"
+                        className="inline-flex items-center gap-1.5 text-amber-500 hover:text-amber-600 font-bold text-[10px] hover:underline"
                       >
                         Abrir Demo Inbox <ExternalLink size={10} />
                       </a>
@@ -429,7 +479,7 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
                   )}
 
                   {log.status === 'failed' && (
-                    <p className="text-[10px] text-rose-400 bg-rose-500/10 p-2 rounded-lg font-mono border border-rose-500/20">
+                    <p className="text-[10px] text-rose-500 bg-rose-500/10 p-2 rounded-lg font-mono border border-rose-500/20">
                       Error: {log.errorMessage}
                     </p>
                   )}
@@ -437,9 +487,11 @@ Calendario Calculado: ${task.scheduledEnd || 'N/A'}`;
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 bg-[#0A0A0C] rounded-2xl border border-white/5">
+            <div className={`text-center py-8 rounded-2xl border ${
+              isDarkMode ? 'bg-[#0A0A0C] border-white/5' : 'bg-slate-50 border-slate-200/60'
+            }`}>
               <Mail className="text-slate-600 mx-auto mb-2" size={32} />
-              <p className="text-sm font-semibold text-white">Sin historial de envío</p>
+              <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Sin historial de envío</p>
               <p className="text-xs text-slate-500 mt-1">
                 Las alertas enviadas de forma manual o automática aparecerán aquí en orden cronológico.
               </p>

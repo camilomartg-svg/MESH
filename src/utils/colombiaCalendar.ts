@@ -249,9 +249,11 @@ export function calculateSchedule(
     // If that date is a non-working day, addWorkingDays will automatically slide it to the next working day.
     const { start, end } = addWorkingDays(currentModelerDate, task.durationDays);
 
-    // Modeler's next available date becomes the working day AFTER the end date
-    const nextAvail = getNextWorkingDay(end);
-    modelerAvailableDate[assigneeId] = nextAvail;
+    // Modeler's next available date becomes the working day AFTER the end date (only if NOT scheduled in parallel)
+    if (!task.isParallel) {
+      const nextAvail = getNextWorkingDay(end);
+      modelerAvailableDate[assigneeId] = nextAvail;
+    }
 
     // Check if delayed
     // A task is delayed if:
