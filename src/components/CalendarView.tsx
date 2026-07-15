@@ -143,7 +143,7 @@ export default function CalendarView({ tasks, modelers, isDarkMode = false }: Ca
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Calendar Grid */}
-        <div className={`border rounded-2xl p-4 shadow-sm transition-colors ${
+        <div className={`lg:col-span-3 border rounded-2xl p-4 shadow-sm transition-colors ${
           isDarkMode ? 'bg-[#0A0A0C] border-white/10' : 'bg-[#FAFAFA] border-slate-200'
         }`}>
           {/* Weekdays header */}
@@ -250,7 +250,7 @@ export default function CalendarView({ tasks, modelers, isDarkMode = false }: Ca
         </div>
 
         {/* Side Panel: Month Summary & Colombian Holidays */}
-        <div className="space-y-6">
+        <div className="lg:col-span-1 space-y-6">
           {/* Holidays list in this month */}
           <div className={`border rounded-2xl p-5 shadow-sm transition-colors ${
             isDarkMode ? 'bg-[#16191D] border-white/10' : 'bg-white border-slate-200 shadow-sm'
