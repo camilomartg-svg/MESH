@@ -1,0 +1,6 @@
+{
+  "name": "Planificador de Modelado Revit Colombia",
+  "description": "Herramienta interactiva para planificar tareas de modelado Revit basadas en prioridades y calendario colombiano sin fines de semana ni festivos, con control de modeladores y alertas de retraso por correo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

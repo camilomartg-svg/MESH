@@ -1,0 +1,324 @@
+import React, { useState, useEffect } from 'react';
+import { Task, BimCategory, Modeler } from '../types';
+import { Plus, X, Sparkles } from 'lucide-react';
+
+interface TaskFormProps {
+  task: Task | null; // If editing, otherwise null for creating
+  modelers: Modeler[];
+  onSave: (task: Task) => void;
+  onCancel: () => void;
+  onDelete?: (id: string) => void;
+  suggestedTasksByCategory: { [key in BimCategory]: string[] };
+}
+
+export default function TaskForm({
+  task,
+  modelers,
+  onSave,
+  onCancel,
+  onDelete,
+  suggestedTasksByCategory,
+}: TaskFormProps) {
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<BimCategory>('ELEMENTOS ESTRUCTURALES');
+  const [description, setDescription] = useState('');
+  const [durationDays, setDurationDays] = useState(3);
+  const [priority, setPriority] = useState(1);
+  const [status, setStatus] = useState<'Modelado' | 'Pendiente' | 'N/A'>('Pendiente');
+  const [assigneeId, setAssigneeId] = useState<string>('');
+  const [targetDeliveryDate, setTargetDeliveryDate] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Suggestions helper
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (task) {
+      setName(task.name);
+      setCategory(task.category);
+      setDescription(task.description);
+      setDurationDays(task.durationDays);
+      setPriority(task.priority);
+      setStatus(task.status);
+      setAssigneeId(task.assigneeId || '');
+      setTargetDeliveryDate(task.targetDeliveryDate || '');
+      setNotes(task.notes);
+    } else {
+      // Set default priority as max current priority + 1 if adding
+      setName('');
+      setDescription('');
+      setDurationDays(3);
+      setStatus('Pendiente');
+      setAssigneeId('');
+      setTargetDeliveryDate('');
+      setNotes('');
+    }
+  }, [task]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    onSave({
+      id: task?.id || `task-${Date.now()}`,
+      name: name.trim(),
+      category,
+      description: description.trim(),
+      durationDays: Math.max(1, Number(durationDays)),
+      priority: Math.max(1, Number(priority)),
+      status,
+      assigneeId: assigneeId || null,
+      notes: notes.trim(),
+      targetDeliveryDate: targetDeliveryDate || null,
+      scheduledStart: task?.scheduledStart || null,
+      scheduledEnd: task?.scheduledEnd || null,
+      isDelayed: task?.isDelayed || false,
+    });
+  };
+
+  const selectSuggestion = (sugName: string) => {
+    setName(sugName);
+    setShowSuggestions(false);
+    // Find some default descriptions
+    if (sugName.includes('Contención')) setDescription('Perímetro de sótanos y semisótanos (contención lateral y posterior).');
+    else if (sugName.includes('Columnas')) setDescription('Columnas rectangulares de concreto estructuradas.');
+    else if (sugName.includes('Vigas')) setDescription('Vigas de amarre y vigas aéreas para balcones o losas.');
+    else if (sugName.includes('Losa')) setDescription('Losa de entrepiso, rampa o cimentación.');
+    else if (sugName.includes('Fachada')) setDescription('Muros exteriores de fachada clara u oscura.');
+    else if (sugName.includes('Vidri')) setDescription('Puertas correderas o ventanas con vidrio templado.');
+    else if (sugName.includes('Drywall')) setDescription('Divisiones internas ligeras en placas de yeso.');
+    else if (sugName.includes('Pisos')) setDescription('Acabado de suelo de alta calidad.');
+    else if (sugName.includes('Escalera')) setDescription('Escaleras de evacuación y accesos estructurales.');
+    else if (sugName.includes('Jardinera')) setDescription('Jardineras exteriores y acabados paisajísticos.');
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 max-h-[85vh] overflow-y-auto">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <h3 className="text-lg font-bold text-slate-800">
+          {task ? 'Editar Tarea BIM' : 'Crear Nueva Tarea BIM'}
+        </h3>
+        <button
+          onClick={onCancel}
+          className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm text-slate-700">
+        {/* Category */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Categoría del Elemento Revit
+          </label>
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value as BimCategory);
+              setName('');
+            }}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+          >
+            <option value="ELEMENTOS ESTRUCTURALES">1. ELEMENTOS ESTRUCTURALES</option>
+            <option value="ENVOLVENTE ARQUITECTÓNICA">2. ENVOLVENTE ARQUITECTÓNICA</option>
+            <option value="DIVISIONES INTERIORES">3. DIVISIONES INTERIORES Y ACABADOS</option>
+            <option value="CIRCULACIÓN Y SEGURIDAD">4. CIRCULACIÓN Y SEGURIDAD</option>
+            <option value="REMATES Y EXTERIORES">5. REMATES Y EXTERIORES (URBANISMO)</option>
+          </select>
+        </div>
+
+        {/* Task Name */}
+        <div className="relative">
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Nombre de la Labor
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowSuggestions(!showSuggestions)}
+              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition"
+            >
+              <Sparkles size={12} />
+              Predefinidos Revit
+            </button>
+          </div>
+          <input
+            type="text"
+            required
+            placeholder="Ej: Muros de Contención, Escalera Principal..."
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          {showSuggestions && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
+              <div className="px-3 py-1 text-xs font-semibold text-slate-400 bg-slate-50 border-b border-slate-100">
+                Sugerencias para esta categoría:
+              </div>
+              {suggestedTasksByCategory[category]?.map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => selectSuggestion(sug)}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 font-medium transition text-xs"
+                >
+                  {sug}
+                </button>
+              ))}
+              {(!suggestedTasksByCategory[category] || suggestedTasksByCategory[category].length === 0) && (
+                <div className="px-3 py-2 text-xs text-slate-400">Sin sugerencias predefinidas</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Descripción / Ubicación del Proyecto
+          </label>
+          <textarea
+            placeholder="Escribe la descripción de la labor o los niveles que abarca..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Duration in days */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              Días de Trabajo (Laborables)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="60"
+              required
+              value={durationDays}
+              onChange={(e) => setDurationDays(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Excluye fines de semana y festivos en Colombia.</p>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              Prioridad de Ejecución
+            </label>
+            <input
+              type="number"
+              min="1"
+              required
+              value={priority}
+              onChange={(e) => setPriority(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Define el orden secuencial. 1 = Primero.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Status */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              Estado de Avance
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Pendiente">⬜ Pendiente</option>
+              <option value="Modelado">✅ Modelado</option>
+              <option value="N/A">➖ N/A</option>
+            </select>
+          </div>
+
+          {/* Modeler Assignee */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              Asignado a
+            </label>
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">✨ Auto-asignar por Carga</option>
+              {modelers.map((m) => (
+                <option key={m.id} value={m.id} disabled={!m.active}>
+                  {m.name} {!m.active ? '(Inactivo)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Target Delivery Date (Fecha de entrega) */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Fecha Límite de Entrega (Opcional)
+          </label>
+          <input
+            type="date"
+            value={targetDeliveryDate}
+            onChange={(e) => setTargetDeliveryDate(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-[10px] text-slate-400 mt-1">Se usará para alertar retrasos si se supera esta fecha.</p>
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Notas de Coordinación / Observaciones
+          </label>
+          <textarea
+            placeholder="Anotaciones técnicas de BIM o Revit..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Actions buttons */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100 gap-3">
+          {task && onDelete ? (
+            <button
+              type="button"
+              onClick={() => onDelete(task.id)}
+              className="px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold rounded-xl transition"
+            >
+              Eliminar
+            </button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 font-semibold rounded-xl text-slate-600 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition shadow-md shadow-blue-200"
+            >
+              {task ? 'Guardar Cambios' : 'Agregar Labor'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
