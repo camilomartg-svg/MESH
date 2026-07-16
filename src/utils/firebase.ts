@@ -90,8 +90,12 @@ export const saveProjectDataToFirebase = async (data: any): Promise<boolean> => 
 export const loadProjectDataFromFirebase = async (): Promise<any | null> => {
   try {
     const docRef = doc(db, 'projects', 'main_project');
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docSnap = await Promise.race([
+      getDoc(docRef),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Timeout loading from Firebase')), 5000))
+    ]) as any;
+    
+    if (docSnap && docSnap.exists && docSnap.exists()) {
       return docSnap.data();
     }
   } catch (error) {
