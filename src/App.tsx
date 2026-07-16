@@ -3,7 +3,7 @@ import { Task, Modeler, ProjectSettings, EmailLog, BimCategory, ProjectData, Dra
 import { calculateSchedule, calculateDrawingsSchedule, formatDateKey, addWorkingDays, getWorkingDaysCount } from './utils/colombiaCalendar';
 import { DEFAULT_PROJECT_DATA, getInitialTaskIdForDrawing } from './utils/defaultData';
 import { 
-  uploadFileToFirebaseStorage, 
+  uploadFileToDrive, 
   saveProjectDataToFirebase, 
   loadProjectDataFromFirebase 
 } from './utils/firebase';
@@ -736,7 +736,7 @@ export default function App() {
     setIsUploading(true);
     setUploadError(null);
     try {
-      const att = await uploadFileToFirebaseStorage(file);
+      const att = await uploadFileToDrive(file);
       setNewEntryAttachments(prev => [...prev, att]);
     } catch (err: any) {
       console.error(err);
@@ -757,7 +757,7 @@ export default function App() {
     setIsUploading(true);
     setUploadError(null);
     try {
-      const att = await uploadFileToFirebaseStorage(file);
+      const att = await uploadFileToDrive(file);
       
       const updated = devEntries.map(entry => {
         if (entry.id === entryId) {

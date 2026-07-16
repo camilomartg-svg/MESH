@@ -19,32 +19,50 @@ export const db = getFirestore(app, 'ai-studio-5045f468-7ae1-41c9-95a5-a3d1b5211
 export const storage = getStorage(app);
 
 /**
- * Uploads a local file to Firebase Storage and returns the public download URL.
+ * Uploads a local file to Google Drive via Google Apps Script (bypassing Auth)
  */
-export const uploadFileToFirebaseStorage = async (
+export const uploadFileToDrive = async (
   file: File
-): Promise<{ id: string; name: string; url: string; type: 'firebase' }> => {
-  try {
-    // Create a unique file name to avoid overwrites
-    const uniqueFileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-    const storageRef = ref(storage, `uploads/${uniqueFileName}`);
-    
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
-    
-    // Get the public URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
+): Promise<{ id: string; name: string; url: string; type: 'gdrive' }> => {
+  const GAS_URL = "https://script.google.com/macros/s/AKfycby-HHZ0CWKX39JyQntMF8xQm8aIAjqN1PhXCJHuEPu2Xx5flhFDXeD-udMkgNFY4t6fmg/exec";
 
-    return {
-      id: uniqueFileName,
-      name: file.name,
-      url: downloadURL,
-      type: 'firebase'
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const result = reader.result as string;
+        const base64Data = result.split(',')[1];
+
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            file: base64Data,
+            name: file.name,
+            mimeType: file.type || 'application/octet-stream'
+          })
+        });
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+          resolve({
+            id: 'gdrive_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            name: file.name,
+            url: data.url,
+            type: 'gdrive'
+          });
+        } else {
+          reject(new Error(data.message || 'Error desconocido al subir'));
+        }
+      } catch (err) {
+        reject(err);
+      }
     };
-  } catch (error: any) {
-    console.error('Error al subir archivo a Firebase Storage:', error);
-    throw new Error('No se pudo subir el archivo: ' + (error.message || String(error)));
-  }
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
 };
 
 /**
