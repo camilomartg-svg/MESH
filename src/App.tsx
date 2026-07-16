@@ -395,16 +395,17 @@ export default function App() {
     async function saveToServer() {
       setSaving(true);
       try {
-        await fetch('/api/project', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(currentData),
-        });
-        
-        // Parallel sync with Firebase Firestore
-        await saveProjectDataToFirebase(currentData);
+        // Execute both syncs in parallel to ensure one failing (like /api/project on GitHub pages) doesn't block the other
+        await Promise.allSettled([
+          saveProjectDataToFirebase(currentData),
+          fetch('/api/project', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentData),
+          })
+        ]);
       } catch (err) {
-        console.error('Failed to sync changes with server:', err);
+        console.error('Failed to sync changes:', err);
       } finally {
         setSaving(false);
       }
@@ -425,10 +426,8 @@ export default function App() {
       if (saving) return; // Do not fetch while saving to avoid race conditions
       
       try {
-        const response = await fetch('/api/project');
-        if (response.ok) {
-          const data = await response.json() as ProjectData;
-          if (data && data.tasks) {
+        const data = await loadProjectDataFromFirebase();
+        if (data && data.tasks) {
             // Only update state if it is structurally different from what we have
             // This prevents resetting active user interactions if data hasn't changed.
             setTasks(prev => {
