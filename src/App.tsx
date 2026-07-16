@@ -3,10 +3,7 @@ import { Task, Modeler, ProjectSettings, EmailLog, BimCategory, ProjectData, Dra
 import { calculateSchedule, calculateDrawingsSchedule, formatDateKey, addWorkingDays, getWorkingDaysCount } from './utils/colombiaCalendar';
 import { DEFAULT_PROJECT_DATA, getInitialTaskIdForDrawing } from './utils/defaultData';
 import { 
-  initAuth, 
-  googleSignIn, 
-  logoutGoogle, 
-  uploadFileToGoogleDrive, 
+  uploadFileToFirebaseStorage, 
   saveProjectDataToFirebase, 
   loadProjectDataFromFirebase 
 } from './utils/firebase';
@@ -205,29 +202,9 @@ export default function App() {
   const [newEntryAttachments, setNewEntryAttachments] = useState<MediaAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   
-  // Google OAuth and Drive Integration
-  const [gUser, setGUser] = useState<any | null>(null);
-  const [gAccessToken, setGAccessToken] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
+  // File Upload State
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-
-  // Initialize Google Auth state listener
-  useEffect(() => {
-    const unsubscribe = initAuth(
-      (user, token) => {
-        setGUser(user);
-        setGAccessToken(token);
-        setIsAuthLoading(false);
-      },
-      () => {
-        setGUser(null);
-        setGAccessToken(null);
-        setIsAuthLoading(false);
-      }
-    );
-    return () => unsubscribe();
-  }, []);
   
   // Lightbox view state for attachments
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -756,61 +733,18 @@ export default function App() {
 
   const handleAddAttachmentToNewEntry = async (file: File) => {
     if (!file) return;
-    
-    let token = gAccessToken;
-    if (!token) {
-      const confirmed = window.confirm("¿Deseas subir este archivo directamente a tu Google Drive? (Recomendado para imágenes y videos grandes para que se guarden permanentemente).");
-      if (confirmed) {
-        try {
-          const result = await googleSignIn();
-          if (result) {
-            token = result.accessToken;
-            setGAccessToken(token);
-            setGUser(result.user);
-          } else {
-            return;
-          }
-        } catch (err) {
-          alert("Error al iniciar sesión con Google: " + (err as Error).message);
-          return;
-        }
-      } else {
-        // Fallback to local upload
-        if (file.size > 2 * 1024 * 1024) {
-          alert("Para asegurar la persistencia local sin Google Drive, los archivos deben pesar menos de 2 MB.");
-          return;
-        }
-        const fileType = file.type.startsWith('video/') ? 'video' : 'image';
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64Url = e.target?.result as string;
-          if (!base64Url) return;
-          const newAttachment: MediaAttachment = {
-            id: 'att_' + Math.random().toString(36).substr(2, 9),
-            name: file.name,
-            type: fileType,
-            url: base64Url
-          };
-          setNewEntryAttachments(prev => [...prev, newAttachment]);
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-    }
 
-    if (!token) return;
-
-    setIsUploadingToDrive(true);
+    setIsUploading(true);
     setUploadError(null);
     try {
-      const att = await uploadFileToGoogleDrive(file, token);
+      const att = await uploadFileToFirebaseStorage(file);
       setNewEntryAttachments(prev => [...prev, att]);
     } catch (err: any) {
       console.error(err);
       setUploadError(err.message || String(err));
-      alert("Error al subir archivo a Google Drive: " + (err.message || String(err)));
+      alert("Error al subir archivo: " + (err.message || String(err)));
     } finally {
-      setIsUploadingToDrive(false);
+      setIsUploading(false);
     }
   };
 
@@ -821,69 +755,16 @@ export default function App() {
   const handleAddAttachmentToExistingEntry = async (entryId: string, file: File) => {
     if (!file) return;
     
-    let token = gAccessToken;
-    if (!token) {
-      const confirmed = window.confirm("¿Deseas subir este archivo directamente a tu Google Drive? (Recomendado para imágenes y videos grandes para que se guarden permanentemente).");
-      if (confirmed) {
-        try {
-          const result = await googleSignIn();
-          if (result) {
-            token = result.accessToken;
-            setGAccessToken(token);
-            setGUser(result.user);
-          } else {
-            return;
-          }
-        } catch (err) {
-          alert("Error al iniciar sesión con Google: " + (err as Error).message);
-          return;
-        }
-      } else {
-        // Fallback to local upload
-        if (file.size > 2 * 1024 * 1024) {
-          alert("Para asegurar la persistencia local sin Google Drive, los archivos deben pesar menos de 2 MB.");
-          return;
-        }
-        const fileType = file.type.startsWith('video/') ? 'video' : 'image';
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64Url = e.target?.result as string;
-          if (!base64Url) return;
-          const newAttachment: MediaAttachment = {
-            id: 'att_' + Math.random().toString(36).substr(2, 9),
-            name: file.name,
-            type: fileType,
-            url: base64Url
-          };
-          
-          const updated = devEntries.map(entry => {
-            if (entry.id === entryId) {
-              return {
-                ...entry,
-                attachments: [...entry.attachments, newAttachment]
-              };
-            }
-            return entry;
-          });
-          handleSaveDevNotes(updated);
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-    }
-
-    if (!token) return;
-
-    setIsUploadingToDrive(true);
+    setIsUploading(true);
     setUploadError(null);
     try {
-      const att = await uploadFileToGoogleDrive(file, token);
+      const att = await uploadFileToFirebaseStorage(file);
       
       const updated = devEntries.map(entry => {
         if (entry.id === entryId) {
           return {
             ...entry,
-            attachments: [...entry.attachments, att]
+            attachments: [...(entry.attachments || []), att]
           };
         }
         return entry;
@@ -892,9 +773,9 @@ export default function App() {
     } catch (err: any) {
       console.error(err);
       setUploadError(err.message || String(err));
-      alert("Error al subir archivo a Google Drive: " + (err.message || String(err)));
+      alert("Error al subir archivo: " + (err.message || String(err)));
     } finally {
-      setIsUploadingToDrive(false);
+      setIsUploading(false);
     }
   };
 
