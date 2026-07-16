@@ -1,18 +1,37 @@
-export type BimCategory =
-  | 'ELEMENTOS ESTRUCTURALES'
-  | 'ENVOLVENTE ARQUITECTÓNICA'
-  | 'DIVISIONES INTERIORES'
-  | 'CIRCULACIÓN Y SEGURIDAD'
-  | 'REMATES Y EXTERIORES';
+export interface MediaAttachment {
+  id: string;
+  name: string;
+  type: 'image' | 'video' | 'gdrive';
+  url: string; // Base64 encoded data to persist in localStorage, or Google Drive URL
+}
+
+export type DevLogType = 'nota' | 'incidencia';
+
+export interface DevLogEntry {
+  id: string;
+  type: DevLogType;
+  title?: string;
+  description: string;
+  resolved?: boolean; // Only for 'incidencia'
+  createdAt: string;
+  attachments: MediaAttachment[];
+}
+
+export interface DevNotesData {
+  entries: DevLogEntry[];
+}
+
+export type BimCategory = string;
 
 export interface Task {
   id: string;
+  code: string;
   name: string;
-  category: BimCategory;
+  category: string;
   description: string;
   durationDays: number;
   priority: number; // 1, 2, 3...
-  status: 'Modelado' | 'Pendiente' | 'N/A';
+  status: 'Realizado' | 'Modelado' | 'En desarrollo' | 'Pendiente' | 'N/A';
   assigneeId: string | null;
   scheduledStart: string | null; // YYYY-MM-DD
   scheduledEnd: string | null; // YYYY-MM-DD
@@ -20,6 +39,9 @@ export interface Task {
   targetDeliveryDate: string | null; // YYYY-MM-DD
   isDelayed: boolean;
   isParallel?: boolean;
+  manualStart?: string | null; // YYYY-MM-DD
+  parallelWithTaskId?: string | null;
+  devNotes?: DevNotesData;
 }
 
 export interface Modeler {
@@ -54,12 +76,19 @@ export interface Drawing {
   code: string;
   name: string;
   scale: string;
-  status: 'Realizado' | 'Pendiente' | 'N/A';
+  status: 'Realizado' | 'En desarrollo' | 'Pendiente' | 'N/A';
   observations: string;
   deliveryDate: string | null; // YYYY-MM-DD
   series: string; // e.g. "SERIE 100: ARQUITECTURA GENERAL (AUT)"
   taskId?: string | null;
   assigneeId?: string | null;
+  isParallel?: boolean;
+  parallelWithDrawingId?: string | null;
+  durationDays?: number;
+  manualStart?: string | null;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  devNotes?: DevNotesData;
 }
 
 export interface ProjectData {
@@ -68,4 +97,6 @@ export interface ProjectData {
   settings: ProjectSettings;
   emailLogs: EmailLog[];
   drawings?: Drawing[];
+  bimCategories?: string[];
+  drawingSeries?: string[];
 }

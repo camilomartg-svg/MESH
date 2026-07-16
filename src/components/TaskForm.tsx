@@ -4,25 +4,30 @@ import { Plus, X, Sparkles } from 'lucide-react';
 
 interface TaskFormProps {
   task: Task | null; // If editing, otherwise null for creating
+  tasks: Task[];
   modelers: Modeler[];
   onSave: (task: Task) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
   suggestedTasksByCategory: { [key in BimCategory]: string[] };
   isDarkMode?: boolean;
+  bimCategories: string[];
 }
 
 export default function TaskForm({
   task,
+  tasks,
   modelers,
   onSave,
   onCancel,
   onDelete,
   suggestedTasksByCategory,
   isDarkMode = false,
+  bimCategories,
 }: TaskFormProps) {
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<BimCategory>('ELEMENTOS ESTRUCTURALES');
+  const [category, setCategory] = useState<BimCategory>('');
   const [description, setDescription] = useState('');
   const [durationDays, setDurationDays] = useState(3);
   const [priority, setPriority] = useState(1);
@@ -31,12 +36,15 @@ export default function TaskForm({
   const [targetDeliveryDate, setTargetDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isParallel, setIsParallel] = useState(false);
+  const [manualStart, setManualStart] = useState('');
+  const [parallelWithTaskId, setParallelWithTaskId] = useState('');
 
   // Suggestions helper
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     if (task) {
+      setCode(task.code || '');
       setName(task.name);
       setCategory(task.category);
       setDescription(task.description);
@@ -47,9 +55,15 @@ export default function TaskForm({
       setTargetDeliveryDate(task.targetDeliveryDate || '');
       setNotes(task.notes);
       setIsParallel(task.isParallel || false);
+      setManualStart(task.manualStart || '');
+      setParallelWithTaskId(task.parallelWithTaskId || '');
     } else {
-      // Set default priority as max current priority + 1 if adding
+      // Auto-generate code
+      const nextNum = tasks.length + 1;
+      const paddedNum = String(nextNum).padStart(2, '0');
+      setCode(`BIM-${paddedNum}`);
       setName('');
+      setCategory(bimCategories[0] || 'ELEMENTOS ESTRUCTURALES');
       setDescription('');
       setDurationDays(3);
       setStatus('Pendiente');
@@ -57,8 +71,10 @@ export default function TaskForm({
       setTargetDeliveryDate('');
       setNotes('');
       setIsParallel(false);
+      setManualStart('');
+      setParallelWithTaskId('');
     }
-  }, [task]);
+  }, [task, tasks, bimCategories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +82,7 @@ export default function TaskForm({
 
     onSave({
       id: task?.id || `task-${Date.now()}`,
+      code: code.trim() || `BIM-${String(tasks.length + 1).padStart(2, '0')}`,
       name: name.trim(),
       category,
       description: description.trim(),
@@ -79,6 +96,8 @@ export default function TaskForm({
       scheduledEnd: task?.scheduledEnd || null,
       isDelayed: task?.isDelayed || false,
       isParallel,
+      manualStart: manualStart || null,
+      parallelWithTaskId: isParallel ? (parallelWithTaskId || null) : null,
     });
   };
 
@@ -140,74 +159,91 @@ export default function TaskForm({
                 : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-black focus:ring-black'
             }`}
           >
-            <option value="ELEMENTOS ESTRUCTURALES">1. ELEMENTOS ESTRUCTURALES</option>
-            <option value="ENVOLVENTE ARQUITECTÓNICA">2. ENVOLVENTE ARQUITECTÓNICA</option>
-            <option value="DIVISIONES INTERIORES">3. DIVISIONES INTERIORES Y ACABADOS</option>
-            <option value="CIRCULACIÓN Y SEGURIDAD">4. CIRCULACIÓN Y SEGURIDAD</option>
-            <option value="REMATES Y EXTERIORES">5. REMATES Y EXTERIORES (URBANISMO)</option>
+            {bimCategories.map((cat, index) => (
+              <option key={cat} value={cat}>
+                {index + 1}. {cat}
+              </option>
+            ))}
           </select>
         </div>
 
-        {/* Task Name */}
-        <div className="relative">
-          <div className="flex items-center justify-between mb-1">
-            <label className={`block text-xs font-semibold uppercase tracking-wider ${
+        {/* Task Name and Code in a grid */}
+        <div className="grid grid-cols-4 gap-3">
+          <div className="col-span-1">
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
               isDarkMode ? 'text-slate-400' : 'text-slate-500'
             }`}>
-              Nombre de la Labor
+              Código
             </label>
-            <button
-              type="button"
-              onClick={() => setShowSuggestions(!showSuggestions)}
-              className={`text-xs flex items-center gap-1 font-semibold transition ${
-                isDarkMode ? 'text-slate-200 hover:text-white' : 'text-slate-900 hover:text-black'
-              }`}
-            >
-              <Sparkles size={12} />
-              Predefinidos Revit
-            </button>
+            <input
+              type="text"
+              disabled
+              value={code || 'M000'}
+              className="w-full px-3 py-2 border rounded-xl bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 cursor-not-allowed font-bold"
+              title="El código único se genera de forma automática"
+            />
           </div>
-          <input
-            type="text"
-            required
-            placeholder="Ej: Muros de Contención, Escalera Principal..."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
-              isDarkMode 
-                ? 'bg-[#16191D] border-white/10 text-white placeholder-slate-600 focus:border-white focus:ring-white' 
-                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-black focus:ring-black'
-            }`}
-          />
 
-          {showSuggestions && (
-            <div className={`absolute z-10 w-full mt-1 border rounded-xl shadow-lg max-h-48 overflow-y-auto py-1 ${
-              isDarkMode 
-                ? 'bg-[#16191D] border-white/10 text-slate-200 shadow-black/50' 
-                : 'bg-white border-slate-200 text-slate-700'
-            }`}>
-              <div className={`px-3 py-1 text-xs font-semibold border-b ${
-                isDarkMode ? 'text-slate-400 bg-white/5 border-white/5' : 'text-slate-400 bg-slate-50 border-slate-100'
+          <div className="col-span-3 relative">
+            <div className="flex items-center justify-between mb-1">
+              <label className={`block text-xs font-semibold uppercase tracking-wider ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
               }`}>
-                Sugerencias para esta categoría:
-              </div>
-              {suggestedTasksByCategory[category]?.map((sug) => (
-                <button
-                  key={sug}
-                  type="button"
-                  onClick={() => selectSuggestion(sug)}
-                  className={`w-full text-left px-3 py-2 text-xs font-medium transition ${
-                    isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  {sug}
-                </button>
-              ))}
-              {(!suggestedTasksByCategory[category] || suggestedTasksByCategory[category].length === 0) && (
-                <div className="px-3 py-2 text-xs text-slate-400">Sin sugerencias predefinidas</div>
-              )}
+                Nombre de la Labor
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowSuggestions(!showSuggestions)}
+                className={`text-xs flex items-center gap-1 font-semibold transition ${
+                  isDarkMode ? 'text-slate-200 hover:text-white' : 'text-slate-900 hover:text-black'
+                }`}
+              >
+                <Sparkles size={12} />
+                Predefinidos Revit
+              </button>
             </div>
-          )}
+            <input
+              type="text"
+              required
+              placeholder="Ej: Muros de Contención, Escalera Principal..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white placeholder-slate-600 focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-black focus:ring-black'
+              }`}
+            />
+
+            {showSuggestions && (
+              <div className={`absolute z-10 w-full mt-1 border rounded-xl shadow-lg max-h-48 overflow-y-auto py-1 ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-slate-200 shadow-black/50' 
+                  : 'bg-white border-slate-200 text-slate-700'
+              }`}>
+                <div className={`px-3 py-1 text-xs font-semibold border-b ${
+                  isDarkMode ? 'text-slate-400 bg-white/5 border-white/5' : 'text-slate-400 bg-slate-50 border-slate-100'
+                }`}>
+                  Sugerencias para esta categoría:
+                </div>
+                {suggestedTasksByCategory[category]?.map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => selectSuggestion(sug)}
+                    className={`w-full text-left px-3 py-2 text-xs font-medium transition ${
+                      isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    {sug}
+                  </button>
+                ))}
+                {(!suggestedTasksByCategory[category] || suggestedTasksByCategory[category].length === 0) && (
+                  <div className="px-3 py-2 text-xs text-slate-400">Sin sugerencias predefinidas</div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Description */}
@@ -295,7 +331,8 @@ export default function TaskForm({
               }`}
             >
               <option value="Pendiente">⬜ Pendiente</option>
-              <option value="Modelado">✅ Modelado</option>
+              <option value="En desarrollo">🟨 En desarrollo</option>
+              <option value="Realizado">✅ Realizado</option>
               <option value="N/A">➖ N/A</option>
             </select>
           </div>
@@ -327,50 +364,108 @@ export default function TaskForm({
         </div>
 
         {/* Programar en Paralelo */}
-        <div className={`border rounded-xl p-3 flex items-center justify-between ${
-          isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'
+        <div className={`border rounded-xl p-3 ${
+          isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'
         }`}>
-          <div className="max-w-[85%]">
-            <label htmlFor="isParallel" className={`block text-xs font-bold cursor-pointer ${
-              isDarkMode ? 'text-slate-200' : 'text-slate-700'
-            }`}>
-              Programar en paralelo
-            </label>
-            <span className="text-[10px] text-slate-400 block mt-0.5">
-              No consume ni bloquea el tiempo secuencial de la cola del modelador (permite solaparse con otras actividades).
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="max-w-[85%]">
+              <label htmlFor="isParallel" className={`block text-xs font-bold cursor-pointer ${
+                isDarkMode ? 'text-slate-200' : 'text-slate-700'
+              }`}>
+                Programar en paralelo
+              </label>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                No consume ni bloquea el tiempo secuencial de la cola del modelador (permite solaparse con otras actividades).
+              </span>
+            </div>
+            <input
+              id="isParallel"
+              type="checkbox"
+              checked={isParallel}
+              onChange={(e) => setIsParallel(e.target.checked)}
+              className={`rounded w-4 h-4 cursor-pointer focus:ring-0 ${
+                isDarkMode 
+                  ? 'border-white/10 bg-[#16191D] text-white' 
+                  : 'border-slate-300 text-black'
+              }`}
+            />
           </div>
-          <input
-            id="isParallel"
-            type="checkbox"
-            checked={isParallel}
-            onChange={(e) => setIsParallel(e.target.checked)}
-            className={`rounded w-4 h-4 cursor-pointer focus:ring-0 ${
-              isDarkMode 
-                ? 'border-white/10 bg-[#16191D] text-white' 
-                : 'border-slate-300 text-black'
-            }`}
-          />
+
+          {isParallel && (
+            <div className={`mt-3 border-t pt-3 space-y-2 ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+              <label className={`block text-xs font-semibold uppercase tracking-wider ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                Realizar en paralelo con la actividad:
+              </label>
+              <select
+                value={parallelWithTaskId}
+                onChange={(e) => setParallelWithTaskId(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                  isDarkMode 
+                    ? 'bg-[#16191D] border-white/10 text-slate-200 focus:border-white focus:ring-white' 
+                    : 'bg-white border-slate-200 text-slate-800 focus:border-black focus:ring-black'
+                }`}
+              >
+                <option value="">-- Seleccionar actividad de referencia --</option>
+                {tasks
+                  .filter(t => t.id !== task?.id) // exclude current task
+                  .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+                  .map(t => (
+                    <option key={t.id} value={t.id}>
+                      [{t.code || 'S/C'}] {t.name}
+                    </option>
+                  ))
+                }
+              </select>
+              <p className="text-[10px] text-slate-400">
+                Ambas actividades se programarán para realizarse a partir del mismo día.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Target Delivery Date (Fecha de entrega) */}
-        <div>
-          <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
-            isDarkMode ? 'text-slate-400' : 'text-slate-500'
-          }`}>
-            Fecha Límite de Entrega (Opcional)
-          </label>
-          <input
-            type="date"
-            value={targetDeliveryDate}
-            onChange={(e) => setTargetDeliveryDate(e.target.value)}
-            className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
-              isDarkMode 
-                ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
-                : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
-            }`}
-          />
-          <p className="text-[10px] text-slate-400 mt-1">Se usará para alertar retrasos si se supera esta fecha.</p>
+        {/* Start and Delivery Dates */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Manual Start Date override */}
+          <div>
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
+              Fecha Programada Manual (Opcional)
+            </label>
+            <input
+              type="date"
+              value={manualStart}
+              onChange={(e) => setManualStart(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+              }`}
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Si se define, anula y fija el inicio programado de esta actividad.</p>
+          </div>
+
+          {/* Target Delivery Date */}
+          <div>
+            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
+              Fecha Límite de Entrega (Opcional)
+            </label>
+            <input
+              type="date"
+              value={targetDeliveryDate}
+              onChange={(e) => setTargetDeliveryDate(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
+                  : 'bg-white border-slate-200 text-slate-900 focus:border-black focus:ring-black'
+              }`}
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Se usará para alertar retrasos si se supera esta fecha.</p>
+          </div>
         </div>
 
         {/* Notes */}

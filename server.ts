@@ -10,7 +10,8 @@ const app = express();
 const PORT = 3000;
 const DATA_FILE = path.join(process.cwd(), 'project_data.json');
 
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Initialize project data if it doesn't exist
 function loadProjectData(): ProjectData {

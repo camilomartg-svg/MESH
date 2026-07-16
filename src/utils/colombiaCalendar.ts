@@ -1,4 +1,4 @@
-import { Task, Modeler } from '../types';
+import { Task, Modeler, Drawing } from '../types';
 
 export interface Holiday {
   date: string; // YYYY-MM-DD
@@ -174,8 +174,8 @@ export function getNextWorkingDay(dateStr: string): string {
   return formatDateKey(currentDate);
 }
 
-// Schedule all tasks based on priorities and active modelers.
-// "solo se puede hacer una tarea a la vez" -> each active modeler acts as a sequential pipeline.
+// Schedule all tasks based on alphabetical order, manual overrides, and parallel links.
+// Each active modeler acts as a sequential pipeline of work unless a task is marked parallel.
 export function calculateSchedule(
   tasks: Task[],
   modelers: Modeler[],
@@ -183,94 +183,141 @@ export function calculateSchedule(
 ): Task[] {
   const activeModelers = modelers.filter(m => m.active);
   if (activeModelers.length === 0) {
-    // If no modelers are active, we can't schedule, or default schedule them on a single virtual modeler
     return tasks.map(t => ({
       ...t,
-      scheduledStart: null,
-      scheduledEnd: null,
+      scheduledStart: t.manualStart || null,
+      scheduledEnd: t.manualStart ? addWorkingDays(t.manualStart, t.durationDays).end : null,
       isDelayed: false,
     }));
   }
 
-  // Sort tasks by priority ascending (1 goes first, then 2, etc.)
-  // Stable sort by priority
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (a.priority !== b.priority) {
-      return a.priority - b.priority;
-    }
-    return a.name.localeCompare(b.name);
-  });
+  // 1. Sort tasks alphabetically by name for a clean pipeline order
+  const sortedTasks = [...tasks].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
-  // Track next available date string for each modeler
-  const modelerAvailableDate: { [modelerId: string]: string } = {};
-  activeModelers.forEach(m => {
-    modelerAvailableDate[m.id] = projectStartDate;
-  });
-
-  // Track tasks scheduled
-  const scheduledTasksMap: { [id: string]: Task } = {};
-
+  // 2. Pre-assign tasks to active modelers
+  const taskAssignees: { [taskId: string]: string } = {};
   sortedTasks.forEach(task => {
-    // Determine assignee
     let assigneeId = task.assigneeId;
-
-    // If assignee is specified but not active or not exists, reset assignee or use first active
     if (!assigneeId || !activeModelers.some(m => m.id === assigneeId)) {
-      // Auto-assign to the modeler who becomes available earliest
-      let earliestModelerId = activeModelers[0].id;
-      let earliestDate = parseDate(modelerAvailableDate[earliestModelerId]);
+      // Auto-assign to first active modeler for stability
+      assigneeId = activeModelers[0].id;
+    }
+    taskAssignees[task.id] = assigneeId;
+  });
 
-      for (let i = 1; i < activeModelers.length; i++) {
-        const mId = activeModelers[i].id;
-        const mDate = parseDate(modelerAvailableDate[mId]);
-        if (mDate < earliestDate) {
-          earliestDate = mDate;
-          earliestModelerId = mId;
+  // Group tasks by assignee for sequential logic
+  const modelerTasks: { [modelerId: string]: Task[] } = {};
+  activeModelers.forEach(m => {
+    modelerTasks[m.id] = sortedTasks.filter(t => taskAssignees[t.id] === m.id);
+  });
+
+  // Keep track of resolved start/end dates
+  const resolvedSchedules: { [id: string]: { start: string; end: string } } = {};
+  const resolving = new Set<string>(); // prevent infinite loops
+
+  function resolveTaskSchedule(taskId: string): { start: string; end: string } | null {
+    if (resolvedSchedules[taskId]) {
+      return resolvedSchedules[taskId];
+    }
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return null;
+
+    if (resolving.has(taskId)) {
+      // Circular reference fallback
+      const { start, end } = addWorkingDays(projectStartDate, task.durationDays);
+      return { start, end };
+    }
+
+    resolving.add(taskId);
+
+    let startStr = '';
+
+    // Case A: Manual Start Date override
+    if (task.manualStart) {
+      startStr = task.manualStart;
+    }
+    // Case B: Parallel linked to another specific activity
+    else if (task.isParallel && task.parallelWithTaskId) {
+      const parent = tasks.find(p => p.id === task.parallelWithTaskId);
+      if (parent && parent.id !== task.id) {
+        const parentSched = resolveTaskSchedule(parent.id);
+        startStr = parentSched ? parentSched.start : projectStartDate;
+      } else {
+        startStr = projectStartDate;
+      }
+    }
+    // Case C: Standard sequential task
+    else {
+      // Process sequential queue of this modeler
+      const mId = taskAssignees[task.id];
+      const mTasks = modelerTasks[mId] || [];
+      const myIndex = mTasks.findIndex(t => t.id === task.id);
+      
+      let currentModelerDate = projectStartDate;
+
+      for (let i = 0; i < myIndex; i++) {
+        const prevTask = mTasks[i];
+        // Skip linked parallel tasks since they don't consume sequential line time
+        if (prevTask.isParallel && prevTask.parallelWithTaskId) {
+          continue;
+        }
+        
+        // Resolve schedule of the preceding task
+        const prevSched = resolveTaskSchedule(prevTask.id);
+        if (prevSched) {
+          const nextAvail = getNextWorkingDay(prevSched.end);
+          if (nextAvail > currentModelerDate) {
+            currentModelerDate = nextAvail;
+          }
         }
       }
-      assigneeId = earliestModelerId;
+
+      startStr = currentModelerDate;
     }
 
-    // Now schedule the task for this assignee
+    // Slide to first working day if starting on holiday or weekend
+    const { start, end } = addWorkingDays(startStr, task.durationDays);
+    const result = { start, end };
+    resolvedSchedules[taskId] = result;
+    resolving.delete(taskId);
+    return result;
+  }
+
+  // Calculate schedules for all tasks in order
+  sortedTasks.forEach(task => {
+    resolveTaskSchedule(task.id);
+  });
+
+  // Map resolved schedules back, maintaining original order in the state but calculated alphabetically
+  return tasks.map(task => {
     if (task.durationDays <= 0) {
-      scheduledTasksMap[task.id] = {
+      return {
         ...task,
-        assigneeId,
         scheduledStart: null,
         scheduledEnd: null,
         isDelayed: false,
       };
-      return;
     }
 
-    const currentModelerDate = modelerAvailableDate[assigneeId];
-    
-    // The start date is the current modeler's available date.
-    // If that date is a non-working day, addWorkingDays will automatically slide it to the next working day.
-    const { start, end } = addWorkingDays(currentModelerDate, task.durationDays);
+    const sched = resolveTaskSchedule(task.id);
+    const start = sched ? sched.start : null;
+    const end = sched ? sched.end : null;
+    const assigneeId = taskAssignees[task.id] || task.assigneeId;
 
-    // Modeler's next available date becomes the working day AFTER the end date (only if NOT scheduled in parallel)
-    if (!task.isParallel) {
-      const nextAvail = getNextWorkingDay(end);
-      modelerAvailableDate[assigneeId] = nextAvail;
-    }
-
-    // Check if delayed
-    // A task is delayed if:
-    // 1. Its scheduledEnd date is past the targetDeliveryDate (fecha de entrega)
-    // 2. OR its status is 'Pendiente' and scheduledEnd is in the past compared to the today's date (local time)
     const todayStr = formatDateKey(new Date());
     let isDelayed = false;
 
-    if (task.status !== 'Modelado') {
-      if (task.targetDeliveryDate && end > task.targetDeliveryDate) {
+    const isFinished = task.status === 'Modelado' || task.status === 'Realizado' || task.status === 'N/A';
+    if (!isFinished) {
+      if (task.targetDeliveryDate && end && end > task.targetDeliveryDate) {
         isDelayed = true;
-      } else if (end < todayStr) {
+      } else if (end && end < todayStr) {
         isDelayed = true;
       }
     }
 
-    scheduledTasksMap[task.id] = {
+    return {
       ...task,
       assigneeId,
       scheduledStart: start,
@@ -278,7 +325,131 @@ export function calculateSchedule(
       isDelayed,
     };
   });
+}
 
-  // Return tasks in their original order, but with scheduling info updated
-  return tasks.map(t => scheduledTasksMap[t.id] || t);
+export function calculateDrawingsSchedule(
+  drawings: Drawing[],
+  modelers: Modeler[],
+  projectStartDate: string
+): Drawing[] {
+  const activeModelers = modelers.filter(m => m.active);
+  if (activeModelers.length === 0) {
+    return drawings.map(d => ({
+      ...d,
+      scheduledStart: d.manualStart || null,
+      scheduledEnd: d.manualStart ? addWorkingDays(d.manualStart, d.durationDays || 3).end : null,
+    }));
+  }
+
+  // 1. Sort drawings alphabetically by name
+  const sortedDrawings = [...drawings].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+  // 2. Pre-assign drawings to active modelers
+  const drawingAssignees: { [drawingId: string]: string } = {};
+  sortedDrawings.forEach(d => {
+    let assigneeId = d.assigneeId;
+    if (!assigneeId || !activeModelers.some(m => m.id === assigneeId)) {
+      assigneeId = activeModelers[0].id;
+    }
+    drawingAssignees[d.id] = assigneeId;
+  });
+
+  // Group drawings by assignee
+  const modelerDrawings: { [modelerId: string]: Drawing[] } = {};
+  activeModelers.forEach(m => {
+    modelerDrawings[m.id] = sortedDrawings.filter(d => drawingAssignees[d.id] === m.id);
+  });
+
+  const resolvedSchedules: { [id: string]: { start: string; end: string } } = {};
+  const resolving = new Set<string>();
+
+  function resolveDrawingSchedule(drawingId: string): { start: string; end: string } | null {
+    if (resolvedSchedules[drawingId]) {
+      return resolvedSchedules[drawingId];
+    }
+
+    const d = drawings.find(x => x.id === drawingId);
+    if (!d) return null;
+
+    const duration = d.durationDays !== undefined ? d.durationDays : 3;
+
+    if (resolving.has(drawingId)) {
+      const { start, end } = addWorkingDays(projectStartDate, duration);
+      return { start, end };
+    }
+
+    resolving.add(drawingId);
+
+    let startStr = '';
+
+    if (d.manualStart) {
+      startStr = d.manualStart;
+    } else if (d.isParallel && d.parallelWithDrawingId) {
+      const parent = drawings.find(p => p.id === d.parallelWithDrawingId);
+      if (parent && parent.id !== d.id) {
+        const parentSched = resolveDrawingSchedule(parent.id);
+        startStr = parentSched ? parentSched.start : projectStartDate;
+      } else {
+        startStr = projectStartDate;
+      }
+    } else {
+      const mId = drawingAssignees[d.id];
+      const mDrawings = modelerDrawings[mId] || [];
+      const myIndex = mDrawings.findIndex(x => x.id === d.id);
+
+      let currentModelerDate = projectStartDate;
+
+      for (let i = 0; i < myIndex; i++) {
+        const prevDraw = mDrawings[i];
+        if (prevDraw.isParallel && prevDraw.parallelWithDrawingId) {
+          continue;
+        }
+
+        const prevSched = resolveDrawingSchedule(prevDraw.id);
+        if (prevSched) {
+          const nextAvail = getNextWorkingDay(prevSched.end);
+          if (nextAvail > currentModelerDate) {
+            currentModelerDate = nextAvail;
+          }
+        }
+      }
+
+      startStr = currentModelerDate;
+    }
+
+    const { start, end } = addWorkingDays(startStr, duration);
+    const result = { start, end };
+    resolvedSchedules[drawingId] = result;
+    resolving.delete(drawingId);
+    return result;
+  }
+
+  sortedDrawings.forEach(d => {
+    resolveDrawingSchedule(d.id);
+  });
+
+  return drawings.map(d => {
+    const duration = d.durationDays !== undefined ? d.durationDays : 3;
+    if (duration <= 0) {
+      return {
+        ...d,
+        scheduledStart: null,
+        scheduledEnd: null,
+        deliveryDate: null,
+      };
+    }
+
+    const sched = resolveDrawingSchedule(d.id);
+    const start = sched ? sched.start : null;
+    const end = sched ? sched.end : null;
+    const assigneeId = drawingAssignees[d.id] || d.assigneeId;
+
+    return {
+      ...d,
+      assigneeId,
+      scheduledStart: start,
+      scheduledEnd: end,
+      deliveryDate: end, // Keep deliveryDate synchronized with scheduledEnd
+    };
+  });
 }
