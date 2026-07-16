@@ -100,7 +100,8 @@ export const uploadFileToGoogleDrive = async (
   const metadata = {
     name: file.name,
     mimeType: file.type,
-    description: 'Subido desde Bitácora de Diseño e Incidencias'
+    description: 'Subido desde Bitácora de Diseño e Incidencias',
+    parents: ['1QLsbOFqJ-6DGUUutYHNsTm8wUj059BhD']
   };
 
   const boundary = 'foo_bar_baz_uploader_boundary';
