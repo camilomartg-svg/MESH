@@ -701,6 +701,7 @@ export default function App() {
     const newEntry: DevLogEntry = {
       id: 'entry_' + Math.random().toString(36).substr(2, 9),
       type: newEntryType,
+      title: newEntryTitle.trim(),
       description: newEntryDescription.trim(),
       resolved: newEntryType === 'incidencia' ? false : undefined,
       createdAt: new Date().toISOString(),
