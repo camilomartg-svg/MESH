@@ -24,7 +24,7 @@ export const storage = getStorage(app);
 export const uploadFileToDrive = async (
   file: File
 ): Promise<{ id: string; name: string; url: string; type: 'gdrive' }> => {
-  const GAS_URL = "https://script.google.com/macros/s/AKfycby-HHZ0CWKX39JyQntMF8xQm8aIAjqN1PhXCJHuEPu2Xx5flhFDXeD-udMkgNFY4t6fmg/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbw3cPNBbERmQvK2_uOcVc2Lcf5TNejAW5KWj2Oe-tI2G1Afp6_LDMwGB9XMo5I_MB8QHg/exec";
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
