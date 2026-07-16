@@ -456,7 +456,6 @@ export default function App() {
               return prev;
             });
           }
-        }
       } catch (err) {
         console.warn('Sync error:', err);
       }
