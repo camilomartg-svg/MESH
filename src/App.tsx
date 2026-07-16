@@ -3254,58 +3254,6 @@ export default function App() {
               {/* Scrollable Content */}
               <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-1">
                 
-                {/* Google Drive Connection Info */}
-                <div className={`p-3 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
-                  isDarkMode ? 'bg-[#16191D]/60 border-white/5' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-2.5 w-2.5 relative">
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${gUser ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${gUser ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                    </span>
-                    <span className="font-extrabold text-[10px] uppercase tracking-wider">
-                      {gUser ? `Conectado a Google Drive como:` : 'Soportes de Google Drive:'}
-                    </span>
-                    {gUser && (
-                      <span className="font-bold text-slate-500 dark:text-slate-400 text-[10px]">
-                        {gUser.email}
-                      </span>
-                    )}
-                  </div>
-                  {gUser ? (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (window.confirm("¿Seguro que deseas desconectar tu cuenta de Google Drive?")) {
-                          await logoutGoogle();
-                          setGUser(null);
-                          setGAccessToken(null);
-                        }
-                      }}
-                      className="text-[10px] font-extrabold text-rose-500 hover:underline uppercase"
-                    >
-                      Desconectar
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const result = await googleSignIn();
-                          if (result) {
-                            setGAccessToken(result.accessToken);
-                            setGUser(result.user);
-                          }
-                        } catch (err) {
-                          alert("Error al conectar con Google: " + (err as Error).message);
-                        }
-                      }}
-                      className="px-3 py-1 rounded-xl text-[9px] font-extrabold bg-amber-500 hover:bg-amber-400 text-black transition flex items-center gap-1.5 uppercase tracking-wider"
-                    >
-                      Conectar Google
-                    </button>
-                  )}
-                </div>
 
                 {/* 1. SECCIÓN: AÑADIR NUEVO REGISTRO */}
                 <div className={`border rounded-2xl p-4 space-y-4 ${
@@ -3467,15 +3415,13 @@ export default function App() {
                         }}
                       />
                       <div className="p-3 bg-amber-500/10 rounded-full text-amber-500 mb-2">
-                        <Upload size={20} className={isUploadingToDrive ? "animate-bounce" : ""} />
+                        <Upload size={20} className={isUploading ? "animate-bounce" : ""} />
                       </div>
                       <span className={`text-xs font-bold text-center ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                         Arrastra aquí tus fotos y videos o haz clic para buscarlos
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 text-center font-medium">
-                        {gUser 
-                          ? `✓ Se subirán automáticamente a tu Google Drive (${gUser.email})` 
-                          : '✓ Se subirán directamente a tu Google Drive al conectarlo, o en almacenamiento local.'}
+                        ✓ Se guardarán permanentemente en la nube
                       </span>
                     </div>
 
