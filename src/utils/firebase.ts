@@ -15,7 +15,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getFirestore(app, 'ai-studio-5045f468-7ae1-41c9-95a5-a3d1b5211560');
 export const storage = getStorage(app);
 
 /**
