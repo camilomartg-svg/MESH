@@ -3352,7 +3352,7 @@ export default function App() {
                         Soportes y Archivos de Avance:
                       </span>
                       <div className="flex items-center gap-3">
-                        {isUploadingToDrive && (
+                        {isUploading && (
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-500 animate-pulse">
                             <RefreshCw size={10} className="animate-spin" />
                             <span>Subiendo soporte...</span>
