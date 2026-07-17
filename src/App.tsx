@@ -443,7 +443,7 @@ export default function App() {
     if (loading) return;
 
     const interval = setInterval(async () => {
-      if (saving) return; // Do not fetch while saving to avoid race conditions
+      if (saving || hasUnsavedChanges) return; // Do not fetch while saving or if we have unsaved local changes
       
       try {
         const data = await loadProjectDataFromFirebase();
@@ -505,7 +505,7 @@ export default function App() {
     }, 6000); // Check every 6 seconds
 
     return () => clearInterval(interval);
-  }, [loading, saving]);
+  }, [loading, saving, hasUnsavedChanges]);
 
   // Recalculate and sort priorities to make them neat (1, 2, 3...)
   const handleRenumberPriorities = () => {
