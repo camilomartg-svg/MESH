@@ -29,7 +29,7 @@ export default function TaskForm({
   const [name, setName] = useState('');
   const [category, setCategory] = useState<BimCategory>('');
   const [description, setDescription] = useState('');
-  const [durationDays, setDurationDays] = useState(3);
+  const [durationDays, setDurationDays] = useState<number | ''>(3);
   const [priority, setPriority] = useState(1);
   const [status, setStatus] = useState<'Modelado' | 'Pendiente' | 'N/A'>('Pendiente');
   const [assigneeId, setAssigneeId] = useState<string>('');
@@ -280,7 +280,10 @@ export default function TaskForm({
               max="60"
               required
               value={durationDays}
-              onChange={(e) => setDurationDays(Math.max(0, parseInt(e.target.value) || 0))}
+              onChange={(e) => {
+                const valStr = e.target.value;
+                setDurationDays(valStr === '' ? '' : Math.max(0, parseInt(valStr) || 0));
+              }}
               className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
                 isDarkMode 
                   ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 

@@ -539,7 +539,7 @@ export default function App() {
         const newTask = { ...t, [field]: value };
         const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
         if (isActivatingField) {
-          const isActive = newTask.durationDays > 0 || newTask.manualStart || newTask.isParallel;
+          const isActive = Number(newTask.durationDays) > 0 || newTask.manualStart || newTask.isParallel;
           if (isActive && !newTask.activationTimestamp) {
             newTask.activationTimestamp = Date.now();
           } else if (!isActive) {
@@ -630,7 +630,7 @@ export default function App() {
         const newD = { ...d, [field]: value };
         const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
         if (isActivatingField) {
-          const isActive = (newD.durationDays !== undefined && newD.durationDays > 0) || newD.manualStart || newD.isParallel;
+          const isActive = (newD.durationDays !== undefined && Number(newD.durationDays) > 0) || newD.manualStart || newD.isParallel;
           if (isActive && !newD.activationTimestamp) {
             newD.activationTimestamp = Date.now();
           } else if (!isActive) {
@@ -1847,7 +1847,8 @@ export default function App() {
                                   min="0"
                                   value={task.durationDays}
                                   onChange={(e) => {
-                                    const val = Math.max(0, parseInt(e.target.value) || 0);
+                                    const valStr = e.target.value;
+                                    const val = valStr === '' ? '' : Math.max(0, parseInt(valStr) || 0);
                                     handleUpdateTaskField(task.id, 'durationDays', val);
                                   }}
                                   className={`w-11 text-center border rounded-lg py-0.5 px-0.5 focus:outline-none focus:border-amber-500 font-extrabold text-[11px] transition ${
@@ -2608,7 +2609,8 @@ export default function App() {
                                         min="0"
                                         value={d.durationDays !== undefined ? d.durationDays : 3}
                                         onChange={(e) => {
-                                          const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                          const valStr = e.target.value;
+                                          const val = valStr === '' ? '' : Math.max(0, parseInt(valStr, 10) || 0);
                                           handleUpdateDrawingField(d.id, 'durationDays', val);
                                         }}
                                         className={`w-11 text-center border rounded-lg py-0.5 px-0.5 focus:outline-none focus:border-amber-500 font-extrabold text-[11px] transition ${

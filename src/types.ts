@@ -85,7 +85,7 @@ export interface Drawing {
   assigneeId?: string | null;
   isParallel?: boolean;
   parallelWithDrawingId?: string | null;
-  durationDays?: number;
+  durationDays?: number | '';
   manualStart?: string | null;
   scheduledStart?: string | null;
   scheduledEnd?: string | null;
