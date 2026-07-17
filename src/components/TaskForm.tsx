@@ -74,7 +74,8 @@ export default function TaskForm({
       setManualStart('');
       setParallelWithTaskId('');
     }
-  }, [task, tasks, bimCategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task]); // Only re-initialize when the task being edited changes
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
