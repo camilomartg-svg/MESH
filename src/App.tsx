@@ -339,6 +339,35 @@ export default function App() {
   }, []);
 
   // Sync / Recalculate schedule whenever tasks, modelers, settings, or drawings change
+  const handleManualSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    const currentData: ProjectData = {
+      tasks,
+      modelers,
+      settings,
+      emailLogs,
+      drawings,
+      bimCategories,
+      drawingSeries,
+    };
+    try {
+      await Promise.allSettled([
+        saveProjectDataToFirebase(currentData),
+        fetch('/api/project', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentData),
+        })
+      ]);
+      setHasUnsavedChanges(false);
+    } catch (err) {
+      console.error('Failed to sync changes:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (loading) return;
 
