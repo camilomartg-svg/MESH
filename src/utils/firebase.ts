@@ -72,8 +72,9 @@ export const saveProjectDataToFirebase = async (data: any): Promise<boolean> => 
   try {
     // Save to Firestore under a fixed document for the current project
     const docRef = doc(db, 'projects', 'main_project');
+    const cleanData = JSON.parse(JSON.stringify(data)); // Sanitize undefined values that crash Firestore
     await setDoc(docRef, {
-      ...data,
+      ...cleanData,
       updatedAt: new Date().toISOString()
     });
     console.log('Sincronizado con Firebase Firestore con éxito.');
