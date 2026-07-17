@@ -1068,7 +1068,7 @@ export default function App() {
         <div className="flex flex-col items-center gap-4">
           <RefreshCw className={`animate-spin ${isDarkMode ? 'text-white' : 'text-black'}`} size={44} />
           <p className={`text-sm font-semibold tracking-wider uppercase ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            Iniciando Planificador Revit...
+            Iniciando Planificador UNUM...
           </p>
         </div>
       </div>
@@ -1110,7 +1110,7 @@ export default function App() {
                   </span>
                 </div>
                 <h1 id="app-title" className={`text-xl font-bold tracking-wider ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  PLANIFICADOR <span className={isDarkMode ? 'text-white border-b border-white' : 'text-slate-950 border-b border-slate-950'}>REVIT COLOMBIA</span>
+                  PLANIFICADOR <span className={isDarkMode ? 'text-white border-b border-white' : 'text-slate-950 border-b border-slate-950'}>UNUM</span>
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
                   Optimización secuencial por modelador, exclusión de feriados colombianos y sincronización de correo.
