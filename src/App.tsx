@@ -43,7 +43,8 @@ import {
   X,
   Search,
   ExternalLink,
-  Upload
+  Upload,
+  Save
 } from 'lucide-react';
 
 export function getGoogleDrivePreviewUrl(url: string): string | null {
@@ -170,6 +171,7 @@ export default function App() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Modal / Form States
@@ -384,7 +386,7 @@ export default function App() {
       return;
     }
 
-    // Save to server
+    // Save to local storage instantly
     const currentData: ProjectData = {
       tasks,
       modelers,
@@ -394,31 +396,15 @@ export default function App() {
       bimCategories,
       drawingSeries,
     };
-
     localStorage.setItem('revit_planner_project', JSON.stringify(currentData));
+    
+    // Mark as unsaved
+    setHasUnsavedChanges(true);
 
-    async function saveToServer() {
-      setSaving(true);
-      try {
-        // Execute both syncs in parallel to ensure one failing (like /api/project on GitHub pages) doesn't block the other
-        await Promise.allSettled([
-          saveProjectDataToFirebase(currentData),
-          fetch('/api/project', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(currentData),
-          })
-        ]);
-      } catch (err) {
-        console.error('Failed to sync changes:', err);
-      } finally {
-        setSaving(false);
-      }
-    }
-
+    // Auto-save debounced (30 minutes = 1,800,000 ms)
     const timer = setTimeout(() => {
-      saveToServer();
-    }, 500);
+      handleManualSave();
+    }, 1800000);
 
     return () => clearTimeout(timer);
   }, [tasks, modelers, settings, emailLogs, drawings, bimCategories, drawingSeries, loading]);
@@ -599,7 +585,7 @@ export default function App() {
         }
       }
     }
-    const updated = tasks.map(t => {
+    setTasks(prev => prev.map(t => {
       if (t.id === id) {
         const newTask = { ...t, [field]: value };
         const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
@@ -614,8 +600,7 @@ export default function App() {
         return newTask;
       }
       return t;
-    });
-    setTasks(updated);
+    }));
   };
 
   const handleBulkAssign = (assigneeId: string | null) => {
@@ -700,7 +685,7 @@ export default function App() {
         }
       }
     }
-    const updated = drawings.map(d => {
+    setDrawings(prev => prev.map(d => {
       if (d.id === id) {
         const newD = { ...d, [field]: value };
         const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
@@ -715,8 +700,7 @@ export default function App() {
         return newD;
       }
       return d;
-    });
-    setDrawings(updated);
+    }));
   };
 
   const handleClearDrawingDates = () => {
@@ -1371,19 +1355,25 @@ export default function App() {
                 />
               </div>
 
-              {saving ? (
-                <div className={`text-[10px] px-3 py-2.5 rounded-xl flex items-center gap-1.5 border font-semibold ${
-                  isDarkMode ? 'bg-white/5 text-slate-400 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'
-                }`}>
-                  <RefreshCw size={11} className="animate-spin" /> Guardando...
-                </div>
-              ) : (
-                <div className={`text-[10px] px-3 py-2.5 rounded-xl flex items-center gap-1.5 border font-semibold ${
-                  isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }`}>
-                  <CheckCircle2 size={11} /> Guardado
-                </div>
-              )}
+              <button 
+                onClick={handleManualSave}
+                disabled={saving || !hasUnsavedChanges}
+                className={`text-[10px] px-3 py-2.5 rounded-xl flex items-center gap-1.5 border font-semibold transition ${
+                  saving
+                    ? (isDarkMode ? 'bg-white/5 text-slate-400 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200')
+                    : hasUnsavedChanges 
+                      ? (isDarkMode ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100')
+                      : (isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                }`}
+              >
+                {saving ? (
+                  <><RefreshCw size={11} className="animate-spin" /> Guardando...</>
+                ) : hasUnsavedChanges ? (
+                  <><Save size={11} /> Guardar</>
+                ) : (
+                  <><CheckCircle2 size={11} /> Guardado</>
+                )}
+              </button>
             </div>
           </div>
         </div>

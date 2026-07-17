@@ -240,7 +240,7 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
                  ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
                  : (isDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 border-slate-200')
              }`}
-             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='${act.isParallel ? '%23ffffff' : '%2394a3b8'}'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 2px center', backgroundSize: '12px' }}
+             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='${act.isParallel ? '%23ffffff' : '%2394a3b8'}'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 2px center', backgroundSize: '12px', backgroundRepeat: 'no-repeat' }}
              title="Seleccionar paralelismo"
            >
              <option value="no">No</option>
