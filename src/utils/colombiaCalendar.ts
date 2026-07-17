@@ -338,7 +338,7 @@ export function calculateUnifiedSchedule(
   const sequentialItems = unifiedList.filter(item => !item.manualStart && item.activationTimestamp > 0 && item.durationDays > 0);
   sequentialItems.sort((a, b) => {
     if (a.activationTimestamp !== b.activationTimestamp) return a.activationTimestamp - b.activationTimestamp;
-    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    return a.id.localeCompare(b.id, 'en', { numeric: true });
   });
 
   const resolving = new Set<string>();
