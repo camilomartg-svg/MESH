@@ -1387,7 +1387,6 @@ export default function App() {
             </div>
           </div>
 
-        </div>
       </section>
 
       {/* CORE NAVIGATION AND LAYOUT */}
