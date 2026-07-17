@@ -536,7 +536,17 @@ export default function App() {
   const handleUpdateTaskField = (id: string, field: keyof Task, value: any) => {
     const updated = tasks.map(t => {
       if (t.id === id) {
-        return { ...t, [field]: value };
+        const newTask = { ...t, [field]: value };
+        const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
+        if (isActivatingField) {
+          const isActive = newTask.durationDays > 0 || newTask.manualStart || newTask.isParallel;
+          if (isActive && !newTask.activationTimestamp) {
+            newTask.activationTimestamp = Date.now();
+          } else if (!isActive) {
+            newTask.activationTimestamp = undefined;
+          }
+        }
+        return newTask;
       }
       return t;
     });
@@ -554,9 +564,16 @@ export default function App() {
   };
 
   const handleBulkDuration = (days: number) => {
-    const updated = tasks.map(t => {
+    const ts = Date.now();
+    const updated = tasks.map((t, idx) => {
       if (selectedTaskIds.includes(t.id)) {
-        return { ...t, durationDays: days };
+        const newTask = { ...t, durationDays: days };
+        if (days > 0 && !newTask.activationTimestamp) {
+           newTask.activationTimestamp = ts + idx; // unique but sequential
+        } else if (days === 0 && !newTask.manualStart && !newTask.isParallel) {
+           newTask.activationTimestamp = undefined;
+        }
+        return newTask;
       }
       return t;
     });
@@ -610,7 +627,17 @@ export default function App() {
   const handleUpdateDrawingField = (id: string, field: keyof Drawing, value: any) => {
     const updated = drawings.map(d => {
       if (d.id === id) {
-        return { ...d, [field]: value };
+        const newD = { ...d, [field]: value };
+        const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
+        if (isActivatingField) {
+          const isActive = (newD.durationDays !== undefined && newD.durationDays > 0) || newD.manualStart || newD.isParallel;
+          if (isActive && !newD.activationTimestamp) {
+            newD.activationTimestamp = Date.now();
+          } else if (!isActive) {
+            newD.activationTimestamp = undefined;
+          }
+        }
+        return newD;
       }
       return d;
     });
@@ -858,9 +885,16 @@ export default function App() {
   };
 
   const handleBulkDurationDrawings = (days: number) => {
-    const updated = drawings.map(d => {
+    const ts = Date.now();
+    const updated = drawings.map((d, idx) => {
       if (selectedDrawingIds.includes(d.id)) {
-        return { ...d, durationDays: days };
+        const newD = { ...d, durationDays: days };
+        if (days > 0 && !newD.activationTimestamp) {
+           newD.activationTimestamp = ts + idx;
+        } else if (days === 0 && !newD.manualStart && !newD.isParallel) {
+           newD.activationTimestamp = undefined;
+        }
+        return newD;
       }
       return d;
     });

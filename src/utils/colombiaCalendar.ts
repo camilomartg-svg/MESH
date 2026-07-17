@@ -191,8 +191,20 @@ export function calculateSchedule(
     }));
   }
 
-  // 1. Sort tasks alphabetically by name for a clean pipeline order
-  const sortedTasks = [...tasks].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  // 1. Sort tasks chronologically by when they were activated, falling back to alphabetical
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const isActiveA = a.durationDays > 0 || a.manualStart || a.isParallel;
+    const isActiveB = b.durationDays > 0 || b.manualStart || b.isParallel;
+    const timeA = a.activationTimestamp || (isActiveA ? 1 : 0);
+    const timeB = b.activationTimestamp || (isActiveB ? 1 : 0);
+    if (timeA > 0 && timeB > 0) {
+      if (timeA !== timeB) return timeA - timeB;
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    }
+    if (timeA > 0) return -1;
+    if (timeB > 0) return 1;
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
 
   // 2. Pre-assign tasks to active modelers
   const taskAssignees: { [taskId: string]: string } = {};
@@ -364,8 +376,20 @@ export function calculateDrawingsSchedule(
     }));
   }
 
-  // 1. Sort drawings alphabetically by name
-  const sortedDrawings = [...drawings].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  // 1. Sort drawings chronologically by when they were activated, falling back to alphabetical
+  const sortedDrawings = [...drawings].sort((a, b) => {
+    const isActiveA = (a.durationDays !== undefined && a.durationDays > 0) || a.manualStart || a.isParallel;
+    const isActiveB = (b.durationDays !== undefined && b.durationDays > 0) || b.manualStart || b.isParallel;
+    const timeA = a.activationTimestamp || (isActiveA ? 1 : 0);
+    const timeB = b.activationTimestamp || (isActiveB ? 1 : 0);
+    if (timeA > 0 && timeB > 0) {
+      if (timeA !== timeB) return timeA - timeB;
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    }
+    if (timeA > 0) return -1;
+    if (timeB > 0) return 1;
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
 
   // 2. Pre-assign drawings to active modelers
   const drawingAssignees: { [drawingId: string]: string } = {};

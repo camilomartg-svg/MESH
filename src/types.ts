@@ -42,6 +42,7 @@ export interface Task {
   manualStart?: string | null; // YYYY-MM-DD
   parallelWithTaskId?: string | null;
   devNotes?: DevNotesData;
+  activationTimestamp?: number;
 }
 
 export interface Modeler {
@@ -89,6 +90,7 @@ export interface Drawing {
   scheduledStart?: string | null;
   scheduledEnd?: string | null;
   devNotes?: DevNotesData;
+  activationTimestamp?: number;
 }
 
 export interface ProjectData {
