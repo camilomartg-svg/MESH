@@ -700,9 +700,9 @@ export default function App() {
     const updated = tasks.map((t, idx) => {
       if (selectedTaskIds.includes(t.id)) {
         const newTask = { ...t, durationDays: days };
-        if (days > 0 && !newTask.activationTimestamp) {
+        if (days > 0 && !(Number(t.durationDays) > 0)) {
            newTask.activationTimestamp = ts + idx; // unique but sequential
-        } else if (days === 0 && !newTask.manualStart && !newTask.isParallel) {
+        } else if (days === 0 && !newTask.manualStart) {
            newTask.activationTimestamp = undefined;
         }
         return newTask;
@@ -1039,9 +1039,9 @@ export default function App() {
     const updated = drawings.map((d, idx) => {
       if (selectedDrawingIds.includes(d.id)) {
         const newD = { ...d, durationDays: days };
-        if (days > 0 && !newD.activationTimestamp) {
+        if (days > 0 && !(d.durationDays !== undefined && Number(d.durationDays) > 0)) {
            newD.activationTimestamp = ts + idx;
-        } else if (days === 0 && !newD.manualStart && !newD.isParallel) {
+        } else if (days === 0 && !newD.manualStart) {
            newD.activationTimestamp = undefined;
         }
         return newD;
