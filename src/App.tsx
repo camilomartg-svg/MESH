@@ -1215,6 +1215,55 @@ export default function App() {
     }
   };
 
+  const handleUpdateBlockDates = (
+    blockActivities: { id: string; type: 'task' | 'drawing' }[],
+    newDate: string,
+    draggedId: string,
+    newModelerId: string
+  ) => {
+    // 1. Check collisions only for the dragged item to avoid popup spam
+    const draggedItemTask = tasks.find(t => t.id === draggedId);
+    const draggedItemDrawing = drawings.find(d => d.id === draggedId);
+    const duration = draggedItemTask ? Number(draggedItemTask.durationDays) : (draggedItemDrawing && draggedItemDrawing.durationDays !== undefined ? Number(draggedItemDrawing.durationDays) : 3);
+    
+    if (draggedItemTask || draggedItemDrawing) {
+      const collidingName = checkScheduleCollision(
+        newModelerId === 'unassigned' ? null : newModelerId, 
+        newDate, 
+        duration || 0, 
+        draggedId
+      );
+      if (collidingName) {
+         const confirm = window.confirm(`La fecha seleccionada se cruza con "${collidingName}". ¿Deseas reasignarla de todos modos?`);
+         if (!confirm) return;
+      }
+    }
+
+    setTasks(prev => prev.map(t => {
+      const inBlock = blockActivities.find(b => b.id === t.id && b.type === 'task');
+      if (inBlock) {
+        return {
+          ...t,
+          manualStart: newDate,
+          assigneeId: t.id === draggedId ? (newModelerId === 'unassigned' ? null : newModelerId) : t.assigneeId
+        };
+      }
+      return t;
+    }));
+
+    setDrawings(prev => prev.map(d => {
+      const inBlock = blockActivities.find(b => b.id === d.id && b.type === 'drawing');
+      if (inBlock) {
+        return {
+          ...d,
+          manualStart: newDate,
+          assigneeId: d.id === draggedId ? (newModelerId === 'unassigned' ? null : newModelerId) : d.assigneeId
+        };
+      }
+      return d;
+    }));
+  };
+
   // --- PROJECT TIMELINE CALCULATIONS ---
   const activeTasksForSummary = tasks.filter(t => Number(t.durationDays) > 0 || t.manualStart || t.isParallel);
   const activeDrawingsForSummary = drawings.filter(d => (d.durationDays !== undefined && Number(d.durationDays) > 0) || d.manualStart || d.isParallel);
@@ -2987,6 +3036,7 @@ export default function App() {
             isDarkMode={isDarkMode} 
             onUpdateActivity={handleUpdateActivity}
             onReorder={handleReorderActivities}
+            onUpdateBlockDates={handleUpdateBlockDates}
           />
         )}
 

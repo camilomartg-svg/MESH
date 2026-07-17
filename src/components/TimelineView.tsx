@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Task, Drawing, Modeler } from '../types';
-import { isWeekend, getHolidayName, COLOMBIAN_HOLIDAYS, formatDateKey } from '../utils/colombiaCalendar';
-import { ChevronLeft, ChevronRight, Link as LinkIcon, Unlink } from 'lucide-react';
+import { isWeekend, getHolidayName, formatDateKey, parseDate } from '../utils/colombiaCalendar';
+import { Calendar as CalendarIcon, Info } from 'lucide-react';
 
 interface TimelineViewProps {
   tasks: Task[];
@@ -9,7 +9,8 @@ interface TimelineViewProps {
   modelers: Modeler[];
   isDarkMode?: boolean;
   onUpdateActivity: (id: string, type: 'task' | 'drawing', field: string, value: any) => void;
-  onReorder: (modelerId: string | null, items: { id: string, type: 'task' | 'drawing' }[]) => void;
+  onReorder?: (modelerId: string | null, items: { id: string, type: 'task' | 'drawing' }[]) => void;
+  onUpdateBlockDates?: (blockActivities: { id: string; type: 'task' | 'drawing' }[], newDate: string, draggedId: string, newModelerId: string) => void;
 }
 
 type UnifiedActivity = {
@@ -22,86 +23,15 @@ type UnifiedActivity = {
   categoryOrSeries: string;
   scheduledStart: string | null;
   scheduledEnd: string | null;
-  activationTimestamp: number;
   manualStart: string | null;
   isParallel: boolean;
+  parallelWithId: string | null;
 };
 
-// --- Mini Referencia de Calendario ---
-function MiniCalendarRef({ isDarkMode }: { isDarkMode: boolean }) {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 1)); // Julio 2026
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-  const firstDayOfMonth = new Date(year, month, 1);
-  const startDayOfWeek = firstDayOfMonth.getDay(); 
-  const adjustedStartDay = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
-  const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const calendarDays: (Date | null)[] = [];
-  for (let i = 0; i < adjustedStartDay; i++) calendarDays.push(null);
-  for (let d = 1; d <= totalDaysInMonth; d++) calendarDays.push(new Date(year, month, d));
-
-  return (
-    <div className={`w-64 flex-shrink-0 border-r flex flex-col ${isDarkMode ? 'border-white/10 bg-[#0F1115]' : 'border-slate-200 bg-white'}`}>
-      <div className={`p-4 border-b flex items-center justify-between ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
-        <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className={`p-1.5 rounded transition ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-100 text-slate-800'}`}><ChevronLeft size={16} /></button>
-        <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-          {monthNames[month]} {year}
-        </span>
-        <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className={`p-1.5 rounded transition ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-100 text-slate-800'}`}><ChevronRight size={16} /></button>
-      </div>
-      <div className="p-4 flex-1 overflow-y-auto">
-        <div className={`grid grid-cols-7 gap-1 text-center font-bold text-[10px] mb-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div>
-          <div className="text-rose-400">S</div><div className="text-rose-400">D</div>
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map((day, idx) => {
-            if (!day) return <div key={`empty-${idx}`} className="aspect-square" />;
-            const isWknd = isWeekend(day);
-            const hol = getHolidayName(day);
-            const isNonWorking = isWknd || hol;
-            return (
-              <div 
-                key={idx} 
-                title={hol || ''}
-                className={`aspect-square flex items-center justify-center rounded text-[10px] font-bold ${
-                  isNonWorking 
-                    ? (isDarkMode ? 'bg-rose-500/10 text-rose-400/50' : 'bg-rose-50 text-rose-300')
-                    : (isDarkMode ? 'bg-white/5 text-slate-300' : 'bg-slate-100 text-slate-700')
-                }`}
-              >
-                {day.getDate()}
-              </div>
-            );
-          })}
-        </div>
-        
-        <div className="mt-6 space-y-3">
-           <h4 className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Días no laborables</h4>
-           <div className="space-y-2">
-             {calendarDays.filter(d => d && getHolidayName(d)).map((d, i) => (
-               <div key={i} className="flex gap-2 text-[10px]">
-                 <span className={`px-1.5 py-0.5 rounded font-bold whitespace-nowrap h-fit ${isDarkMode ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}>{d!.getDate()} {monthNames[month].substring(0,3)}</span>
-                 <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>{getHolidayName(d!)}</span>
-               </div>
-             ))}
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function TimelineView({ tasks, drawings, modelers, isDarkMode = false, onUpdateActivity, onReorder }: TimelineViewProps) {
+export default function TimelineView({ tasks, drawings, modelers, isDarkMode = false, onUpdateActivity, onUpdateBlockDates }: TimelineViewProps) {
   const [colorMode, setColorMode] = useState<'activity' | 'category'>('activity');
-  
-  // Drag and Drop State
-  const [draggedItem, setDraggedItem] = useState<{ id: string, type: 'task' | 'drawing', sourceCol: string } | null>(null);
-  const [dragOverTarget, setDragOverTarget] = useState<{ colId: string, index: number } | null>(null);
+  const [draggedItem, setDraggedItem] = useState<{ id: string, type: 'task' | 'drawing' } | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<{ colId: string, dateStr: string } | null>(null);
 
   const activeModelers = modelers.filter(m => m.active);
   const columns = [...activeModelers, { id: 'unassigned', name: 'Sin Asignar', color: '#94a3b8', active: true }];
@@ -118,9 +48,9 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
       categoryOrSeries: t.category,
       scheduledStart: t.scheduledStart,
       scheduledEnd: t.scheduledEnd,
-      activationTimestamp: t.activationTimestamp || 0,
       manualStart: t.manualStart || null,
-      isParallel: !!t.isParallel
+      isParallel: !!t.isParallel,
+      parallelWithId: t.parallelWithTaskId || null
     }));
 
     const d = drawings.filter(x => (x.durationDays !== undefined && Number(x.durationDays) > 0) || x.manualStart || x.isParallel).map(d => ({
@@ -133,9 +63,9 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
       categoryOrSeries: d.series,
       scheduledStart: d.scheduledStart,
       scheduledEnd: d.scheduledEnd,
-      activationTimestamp: d.activationTimestamp || 0,
       manualStart: d.manualStart || null,
-      isParallel: !!d.isParallel
+      isParallel: !!d.isParallel,
+      parallelWithId: d.parallelWithDrawingId || null
     }));
 
     return [...t, ...d];
@@ -149,311 +79,289 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
     return map;
   }, [allActivities]);
 
-  // 2. Agrupar por modelador y ordenar
-  const activitiesByModeler = useMemo(() => {
-    const grouped: Record<string, UnifiedActivity[]> = {};
-    columns.forEach(c => grouped[c.id] = []);
-    
+  // 2. Generate Calendar Grid Dates (Y-Axis)
+  const calendarGridDays = useMemo(() => {
+    const allDates = allActivities.map(a => a.scheduledStart).filter(Boolean) as string[];
+    let startDate: Date;
+    let endDate: Date;
+
+    if (allDates.length > 0) {
+      const minDateStr = allDates.reduce((min, cur) => cur < min ? cur : min);
+      const maxDateStr = allDates.reduce((max, cur) => cur > max ? cur : max);
+      startDate = parseDate(minDateStr);
+      endDate = parseDate(maxDateStr);
+    } else {
+      startDate = new Date();
+      endDate = new Date();
+    }
+
+    startDate.setDate(startDate.getDate() - 2); // 2 days padding
+    endDate.setDate(endDate.getDate() + 7); // 7 days padding
+
+    const days: Date[] = [];
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d));
+    }
+    return days;
+  }, [allActivities]);
+
+  // Block Identification Logic
+  const getBlockMembers = (startId: string) => {
+    const parentOf: Record<string, string> = {};
+    const childrenOf: Record<string, string[]> = {};
+
     allActivities.forEach(act => {
-      if (grouped[act.assigneeId!]) {
-        grouped[act.assigneeId!].push(act);
-      } else {
-        grouped['unassigned'].push(act);
+      if (act.isParallel && act.parallelWithId) {
+        parentOf[act.id] = act.parallelWithId;
+        if (!childrenOf[act.parallelWithId]) childrenOf[act.parallelWithId] = [];
+        childrenOf[act.parallelWithId].push(act.id);
       }
     });
 
-    Object.keys(grouped).forEach(key => {
-      grouped[key].sort((a, b) => {
-        // Orden ESTRICTO por prioridad para que el drag & drop no rebote
-        return (a.activationTimestamp || 0) - (b.activationTimestamp || 0);
-      });
-    });
+    let rootId = startId;
+    while (parentOf[rootId]) {
+      rootId = parentOf[rootId];
+    }
 
-    return grouped;
-  }, [allActivities, columns]);
+    const block = new Set<string>();
+    const queue = [rootId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      block.add(current);
+      if (childrenOf[current]) {
+        queue.push(...childrenOf[current]);
+      }
+    }
+    return Array.from(block);
+  };
 
-  // --- Drag & Drop Handlers ---
-  const handleDragStart = (e: React.DragEvent, activityId: string, activityType: string, sourceModelerId: string) => {
+  // Drag & Drop
+  const handleDragStart = (e: React.DragEvent, activityId: string, activityType: string) => {
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('activityId', activityId);
-    e.dataTransfer.setData('activityType', activityType);
-    
     setTimeout(() => {
-      setDraggedItem({ id: activityId, type: activityType as any, sourceCol: sourceModelerId });
+      setDraggedItem({ id: activityId, type: activityType as 'task' | 'drawing' });
     }, 0);
   };
 
   const handleDragEnd = () => {
     setDraggedItem(null);
-    setDragOverTarget(null);
+    setDragOverCell(null);
   };
 
-  const handleDragOverCard = (e: React.DragEvent, colId: string, index: number) => {
+  const handleDropToCell = (e: React.DragEvent, colId: string, dateStr: string) => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const isBottomHalf = (e.clientY - rect.top) > (rect.height / 2);
-    
-    setDragOverTarget({ colId, index: isBottomHalf ? index + 1 : index });
-  };
-
-  const handleDragOverColumn = (e: React.DragEvent, colId: string, length: number) => {
-    e.preventDefault();
-    if (dragOverTarget?.colId !== colId || dragOverTarget?.index !== length) {
-      setDragOverTarget({ colId, index: length });
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!draggedItem || !dragOverTarget) {
+    if (!draggedItem || !onUpdateBlockDates) {
       handleDragEnd();
       return;
     }
 
-    const { id: activityId, type: activityType, sourceCol: sourceModelerId } = draggedItem;
-    const { colId: targetModelerId, index: dropIndex } = dragOverTarget;
+    const blockMembers = getBlockMembers(draggedItem.id);
+    const blockActivities = allActivities.filter(a => blockMembers.includes(a.id)).map(a => ({ id: a.id, type: a.type }));
 
-    const sourceList = activitiesByModeler[sourceModelerId] || [];
-    const targetList = [...(activitiesByModeler[targetModelerId] || [])];
-    
-    const itemIndex = sourceList.findIndex(a => a.id === activityId);
-    if (itemIndex === -1) {
-       handleDragEnd();
-       return;
-    }
-
-    // --- IDENTIFICAR EL BLOQUE (Leader + Paralelas) ---
-    let startIndex = itemIndex;
-    // Buscar hacia atrás al líder del bloque (el primero que no sea paralelo)
-    while (startIndex > 0 && sourceList[startIndex].isParallel) {
-       startIndex--;
-    }
-    
-    let endIndex = itemIndex;
-    // Buscar hacia adelante todas las paralelas que le siguen
-    while (endIndex + 1 < sourceList.length && sourceList[endIndex + 1].isParallel) {
-       endIndex++;
-    }
-
-    // Extraer el bloque
-    let blockToMove: UnifiedActivity[];
-    
-    if (sourceModelerId === targetModelerId) {
-      // Movimiento en la misma columna
-      // Validar si realmente cambia de lugar
-      if (dropIndex >= startIndex && dropIndex <= endIndex + 1) {
-         handleDragEnd();
-         return; // Se soltó dentro del mismo bloque, no hacer nada
-      }
-      
-      blockToMove = targetList.splice(startIndex, endIndex - startIndex + 1);
-      
-      // Ajustar el índice de inserción
-      let insertIndex = dropIndex;
-      if (dropIndex > endIndex) {
-         insertIndex = dropIndex - blockToMove.length;
-      }
-      targetList.splice(insertIndex, 0, ...blockToMove);
-      
-    } else {
-      // Movimiento a otra columna
-      blockToMove = sourceList.slice(startIndex, endIndex + 1);
-      
-      // Actualizar assigneeId de todo el bloque
-      blockToMove.forEach(act => {
-         onUpdateActivity(act.id, act.type, 'assigneeId', targetModelerId === 'unassigned' ? null : targetModelerId);
-      });
-      
-      targetList.splice(dropIndex, 0, ...blockToMove);
-    }
-
-    // Guardar nuevo orden
-    if (targetModelerId !== 'unassigned') {
-      const newOrder = targetList.map(a => ({ id: a.id, type: a.type }));
-      onReorder(targetModelerId, newOrder);
-    }
-    
+    onUpdateBlockDates(blockActivities, dateStr, draggedItem.id, colId);
     handleDragEnd();
   };
 
+  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  const renderCard = (act: UnifiedActivity) => {
+    const isTask = act.type === 'task';
+    let borderColor = isDarkMode ? 'border-white/10' : 'border-slate-200';
+    let badgeColor = '';
+
+    if (colorMode === 'activity') {
+       if (isTask) {
+          borderColor = isDarkMode ? 'border-sky-500/30' : 'border-sky-300';
+          badgeColor = isDarkMode ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-100 text-sky-700';
+       } else {
+          borderColor = isDarkMode ? 'border-emerald-500/30' : 'border-emerald-300';
+          badgeColor = isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700';
+       }
+    } else {
+       borderColor = `border-[${categoryColors[act.categoryOrSeries]}]`; 
+       badgeColor = `text-white`;
+    }
+
+    const isDraggingThis = draggedItem?.id === act.id;
+    const parentCode = act.parallelWithId ? allActivities.find(a => a.id === act.parallelWithId)?.code : null;
+
+    return (
+      <div 
+        key={act.id}
+        draggable
+        onDragStart={(e) => handleDragStart(e, act.id, act.type)}
+        onDragEnd={handleDragEnd}
+        className={`p-2.5 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all bg-white dark:bg-[#20242a] mb-2 last:mb-0 ${borderColor} ${isDraggingThis ? 'opacity-40 scale-95 border-dashed z-50' : 'opacity-100 scale-100 z-10'}`}
+        style={colorMode === 'category' ? { borderLeftColor: categoryColors[act.categoryOrSeries], borderLeftWidth: '4px' } : { borderLeftWidth: '4px' }}
+      >
+        <div className="flex justify-between items-start mb-1">
+          <span className={`text-[10px] font-bold tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            [{act.code}]
+          </span>
+          {colorMode === 'activity' ? (
+             <span className={`text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${badgeColor}`}>
+                {isTask ? 'Modelado' : 'Planimetría'}
+             </span>
+          ) : (
+             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: categoryColors[act.categoryOrSeries] }}>
+                {act.categoryOrSeries.substring(0, 15)}
+             </span>
+          )}
+        </div>
+        
+        <h4 className={`text-xs font-bold leading-tight mb-2 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+          {act.name}
+        </h4>
+
+        {/* Botón Paralelo e Indicador */}
+        <div className="flex items-center gap-1.5 mt-2">
+           <button
+             type="button"
+             onClick={(e) => {
+               e.stopPropagation();
+               onUpdateActivity(act.id, act.type, 'isParallel', !act.isParallel);
+             }}
+             className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition flex items-center shadow-sm border ${
+               act.isParallel 
+                 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
+                 : (isDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 border-slate-200')
+             }`}
+             title="Activar/Desactivar tarea paralela"
+           >
+             {act.isParallel ? 'Sí' : 'No'}
+           </button>
+           {act.isParallel && parentCode && (
+             <span className="text-[9px] font-semibold text-slate-400 truncate max-w-[120px]" title="Sigue a esta actividad">
+               Sigue a [{parentCode}]
+             </span>
+           )}
+           {act.isParallel && !parentCode && (
+             <span className="text-[9px] font-semibold text-slate-400 truncate max-w-[120px]" title="Sin predecesor asignado">
+               Paralela
+             </span>
+           )}
+        </div>
+        
+        <div className={`flex justify-between items-end mt-2 pt-2 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+          <div className="flex items-center gap-1">
+             <span className="text-[9px] text-slate-400 uppercase font-bold">Inicio</span>
+             {act.manualStart && <span className="text-[8px]" title="Fecha manual (candado)">🔒</span>}
+          </div>
+          <span className={`text-[10px] font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+             {act.durationDays} d
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  const unscheduled = allActivities.filter(a => !a.scheduledStart);
+
   return (
     <div className={`flex flex-col h-full border rounded-2xl shadow-xl overflow-hidden ${isDarkMode ? 'bg-[#0F1115] border-white/10' : 'bg-white border-slate-200'}`}>
+      {/* Header */}
       <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 ${isDarkMode ? 'border-white/10 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'}`}>
         <div>
-          <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Línea de Tiempo (Swimlanes)</h2>
-          <p className="text-xs text-slate-500">Arrastra y suelta las actividades para cambiar responsables o reordenar prioridades.</p>
+          <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Cuadrícula de Programación (Planner)</h2>
+          <p className="text-xs text-slate-500">Arrastra actividades a la intersección de Día x Persona. Las tareas paralelas se mueven en bloque.</p>
         </div>
 
         <div className="flex items-center gap-2 text-xs font-semibold">
           <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>Color por:</span>
           <div className={`flex rounded-lg p-1 border ${isDarkMode ? 'bg-[#16191D] border-white/10' : 'bg-slate-200/50 border-slate-300'}`}>
-            <button
-              onClick={() => setColorMode('activity')}
-              className={`px-3 py-1 rounded-md transition-colors ${colorMode === 'activity' ? (isDarkMode ? 'bg-white/10 text-white shadow' : 'bg-white text-slate-800 shadow-sm') : (isDarkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700')}`}
-            >
-              Actividad
-            </button>
-            <button
-              onClick={() => setColorMode('category')}
-              className={`px-3 py-1 rounded-md transition-colors ${colorMode === 'category' ? (isDarkMode ? 'bg-white/10 text-white shadow' : 'bg-white text-slate-800 shadow-sm') : (isDarkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700')}`}
-            >
-              Categoría
-            </button>
+            <button onClick={() => setColorMode('activity')} className={`px-3 py-1 rounded-md transition-colors ${colorMode === 'activity' ? (isDarkMode ? 'bg-white/10 text-white shadow' : 'bg-white text-slate-800 shadow-sm') : (isDarkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700')}`}>Actividad</button>
+            <button onClick={() => setColorMode('category')} className={`px-3 py-1 rounded-md transition-colors ${colorMode === 'category' ? (isDarkMode ? 'bg-white/10 text-white shadow' : 'bg-white text-slate-800 shadow-sm') : (isDarkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700')}`}>Categoría</button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEFT PANEL: MINI CALENDAR REFERENCE */}
-        <MiniCalendarRef isDarkMode={isDarkMode} />
+      {/* Inbox (Unscheduled) */}
+      <div className={`p-3 border-b overflow-x-auto whitespace-nowrap flex gap-3 min-h-[90px] items-center ${isDarkMode ? 'bg-[#16191D] border-white/10' : 'bg-slate-100 border-slate-200'}`}>
+        <div className="flex-shrink-0 flex items-center gap-2 mr-2">
+          <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-600'}`}><Info size={14} /></div>
+          <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Bandeja<br/>(Sin Programar)</span>
+        </div>
+        {unscheduled.length === 0 && <span className={`text-xs italic ml-4 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Todas las actividades están programadas.</span>}
+        {unscheduled.map(act => (
+           <div key={act.id} className="inline-block w-56 whitespace-normal align-top">
+             {renderCard(act)}
+           </div>
+        ))}
+      </div>
 
-        {/* RIGHT PANEL: SWIMLANES */}
-        <div className={`flex-1 overflow-x-auto overflow-y-hidden p-4 ${isDarkMode ? 'bg-[#0A0A0C]' : 'bg-slate-50/50'}`}>
-          <div className="flex h-full gap-4 min-w-max items-start">
+      {/* Grid Matrix */}
+      <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-[#0A0A0C]">
+        <div className="min-w-max">
+          {/* Grid Header (Sticky) */}
+          <div className="flex sticky top-0 z-20 border-b shadow-sm">
+            {/* Corner Cell */}
+            <div className={`w-32 flex-shrink-0 p-3 border-r font-bold text-xs uppercase tracking-wider flex items-center justify-center ${isDarkMode ? 'bg-[#16191D] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
+              Fecha / Día
+            </div>
+            {/* Modeler Columns */}
             {columns.map(col => (
-              <div key={col.id} className={`w-80 flex flex-col max-h-full rounded-xl border shadow-sm ${isDarkMode ? 'bg-[#16191D] border-white/5' : 'bg-white border-slate-200'}`}>
-                <div className={`p-3 border-b flex items-center justify-between ${isDarkMode ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full shadow-inner" style={{ backgroundColor: col.color }} />
-                    <span className={`font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{col.name}</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isDarkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-600'}`}>
-                    {activitiesByModeler[col.id]?.length || 0}
-                  </span>
-                </div>
-
-                <div 
-                  className="flex-1 overflow-y-auto p-3 relative"
-                  onDragOver={(e) => handleDragOverColumn(e, col.id, activitiesByModeler[col.id]?.length || 0)}
-                  onDrop={handleDrop}
-                >
-                  {activitiesByModeler[col.id]?.map((act, index) => {
-                    const isTask = act.type === 'task';
-                    let borderColor = isDarkMode ? 'border-white/10' : 'border-slate-200';
-                    let badgeColor = '';
-
-                    if (colorMode === 'activity') {
-                       if (isTask) {
-                          borderColor = isDarkMode ? 'border-sky-500/30' : 'border-sky-300';
-                          badgeColor = isDarkMode ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-100 text-sky-700';
-                       } else {
-                          borderColor = isDarkMode ? 'border-emerald-500/30' : 'border-emerald-300';
-                          badgeColor = isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700';
-                       }
-                    } else {
-                       borderColor = `border-[${categoryColors[act.categoryOrSeries]}]`; 
-                       badgeColor = `text-white`;
-                    }
-
-                    const isDraggingThis = draggedItem?.id === act.id;
-                    
-                    // Identificar si pertenece a un bloque paralelo
-                    const isBlockLeader = !act.isParallel && (activitiesByModeler[col.id][index + 1]?.isParallel);
-                    const isBlockFollower = act.isParallel;
-                    const isEndOfBlock = isBlockFollower && (!activitiesByModeler[col.id][index + 1]?.isParallel);
-
-                    return (
-                      <React.Fragment key={act.id}>
-                        {dragOverTarget?.colId === col.id && dragOverTarget.index === index && !isDraggingThis && (
-                          <div className="h-1.5 bg-sky-500 rounded-full w-full my-1.5 shadow-sm transition-all relative z-10" />
-                        )}
-                        
-                        <div 
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, act.id, act.type, col.id)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={(e) => handleDragOverCard(e, col.id, index)}
-                          onDrop={handleDrop}
-                          className={`p-3 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all relative bg-white dark:bg-[#20242a] ${borderColor} ${isDraggingThis ? 'opacity-40 scale-95 border-dashed z-50' : 'opacity-100 scale-100 z-10'}
-                            ${isBlockFollower ? 'mt-0 rounded-t-none border-t-0' : 'mt-2'}
-                            ${isBlockLeader ? 'rounded-b-none border-b-0 pb-4' : ''}
-                          `}
-                          style={colorMode === 'category' ? { borderLeftColor: categoryColors[act.categoryOrSeries], borderLeftWidth: '4px' } : { borderLeftWidth: '4px' }}
-                        >
-                          {/* Botón de Paralelo */}
-                          <div className="absolute right-2 top-2 z-20">
-                             <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onUpdateActivity(act.id, act.type, 'isParallel', !act.isParallel);
-                                }}
-                                className={`text-[9px] flex items-center gap-1 px-1.5 py-0.5 rounded transition font-bold border ${
-                                  act.isParallel 
-                                    ? (isDarkMode ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100') 
-                                    : (isDarkMode ? 'bg-white/5 text-slate-500 border-white/5 hover:text-slate-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600')
-                                }`}
-                                title={act.isParallel ? 'Se ejecuta simultáneamente con la anterior. Clic para separar.' : 'Clic para anclar a la actividad anterior y ejecutar en paralelo.'}
-                             >
-                                {act.isParallel ? <LinkIcon size={10} /> : <Unlink size={10} />}
-                                {act.isParallel ? 'Paralela' : 'Secuencial'}
-                             </button>
-                          </div>
-
-                          <div className="flex justify-between items-start mb-1 pr-20">
-                            <span className={`text-[10px] font-bold tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                              [{act.code}]
-                            </span>
-                            {colorMode === 'activity' ? (
-                               <span className={`text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${badgeColor}`}>
-                                  {isTask ? 'Modelado' : 'Planimetría'}
-                               </span>
-                            ) : (
-                               <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: categoryColors[act.categoryOrSeries] }}>
-                                  {act.categoryOrSeries.substring(0, 15)}
-                               </span>
-                            )}
-                          </div>
-                          
-                          <h4 className={`text-xs font-bold leading-tight mb-2 pr-2 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                            {act.name}
-                          </h4>
-                          
-                          <div className={`flex justify-between items-end mt-2 pt-2 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
-                            <div className="flex flex-col">
-                               <div className="flex items-center gap-1">
-                                 <span className="text-[9px] text-slate-400 uppercase font-bold">Inicio</span>
-                                 {act.manualStart && <span className="text-[8px]" title="Fecha manual (candado)">🔒</span>}
-                               </div>
-                               <span className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                                  {act.scheduledStart ? act.scheduledStart.split('-').reverse().join('/') : 'Sin Programar'}
-                               </span>
-                            </div>
-                            <div className="flex flex-col items-end">
-                               <span className="text-[9px] text-slate-400 uppercase font-bold">Duración</span>
-                               <span className={`text-[10px] font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>
-                                  {act.durationDays} d
-                               </span>
-                            </div>
-                          </div>
-                          
-                          {/* Visual connection line if part of a block */}
-                          {isBlockLeader && (
-                             <div className={`absolute bottom-0 left-6 w-0.5 h-4 translate-y-full z-0 ${isDarkMode ? 'bg-indigo-500/50' : 'bg-indigo-300'}`} />
-                          )}
-                          {(isBlockFollower && !isEndOfBlock) && (
-                             <div className={`absolute bottom-0 left-6 w-0.5 h-4 translate-y-full z-0 ${isDarkMode ? 'bg-indigo-500/50' : 'bg-indigo-300'}`} />
-                          )}
-                        </div>
-                      </React.Fragment>
-                    );
-                  })}
-                  
-                  {dragOverTarget?.colId === col.id && dragOverTarget.index === activitiesByModeler[col.id]?.length && (
-                    <div className="h-1.5 bg-sky-500 rounded-full w-full mt-2 shadow-sm transition-all relative z-10" />
-                  )}
-
-                  {(!activitiesByModeler[col.id] || activitiesByModeler[col.id].length === 0) && !dragOverTarget && (
-                    <div className={`h-24 border-2 border-dashed rounded-xl flex items-center justify-center text-xs font-bold mt-2 ${isDarkMode ? 'border-white/10 text-slate-600' : 'border-slate-300 text-slate-400'}`}>
-                      Arrastra aquí
-                    </div>
-                  )}
-                  <div className="h-20 w-full bg-transparent" onDragOver={(e) => handleDragOverColumn(e, col.id, activitiesByModeler[col.id]?.length || 0)} onDrop={handleDrop} />
-                </div>
+              <div key={col.id} className={`w-72 flex-shrink-0 p-3 border-r font-bold text-sm flex items-center gap-2 ${isDarkMode ? 'bg-[#16191D] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                <span className="w-3 h-3 rounded-full shadow-inner" style={{ backgroundColor: col.color }} />
+                <span className="truncate">{col.name}</span>
               </div>
             ))}
+          </div>
+
+          {/* Grid Body */}
+          <div className="flex flex-col">
+            {calendarGridDays.map(day => {
+              const dateStr = formatDateKey(day);
+              const wknd = isWeekend(day);
+              const hol = getHolidayName(day);
+              const isNonWorking = wknd || hol;
+
+              const rowBg = isNonWorking 
+                ? (isDarkMode ? 'bg-rose-950/10' : 'bg-rose-50/50') 
+                : (isDarkMode ? 'bg-transparent' : 'bg-white');
+
+              return (
+                <div key={dateStr} className={`flex border-b transition-colors hover:bg-slate-100/50 dark:hover:bg-white/[0.02] ${rowBg} ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                  {/* Y-Axis Label */}
+                  <div className={`w-32 flex-shrink-0 p-3 border-r flex flex-col items-center justify-center text-center ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+                    <span className={`text-sm font-bold ${isNonWorking ? 'text-rose-500' : (isDarkMode ? 'text-slate-300' : 'text-slate-700')}`}>
+                      {day.getDate()} {monthNames[day.getMonth()]}
+                    </span>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${isNonWorking ? 'text-rose-400' : 'text-slate-400'}`}>
+                      {dayNames[day.getDay()]}
+                    </span>
+                    {hol && <span className="text-[9px] text-rose-500 mt-1 italic leading-tight px-1">{hol}</span>}
+                  </div>
+
+                  {/* Modeler Cells */}
+                  {columns.map(col => {
+                    const isDragOver = dragOverCell?.colId === col.id && dragOverCell?.dateStr === dateStr;
+                    const cellActivities = allActivities.filter(a => a.scheduledStart === dateStr && a.assigneeId === col.id);
+
+                    return (
+                      <div 
+                        key={col.id}
+                        onDragOver={(e) => { e.preventDefault(); setDragOverCell({ colId: col.id, dateStr }); }}
+                        onDrop={(e) => handleDropToCell(e, col.id, dateStr)}
+                        onDragLeave={() => setDragOverCell(null)}
+                        className={`w-72 flex-shrink-0 p-2 border-r min-h-[80px] transition-all relative ${
+                          isDarkMode ? 'border-white/5' : 'border-slate-100'
+                        } ${isDragOver ? (isDarkMode ? 'bg-sky-900/30 ring-2 ring-inset ring-sky-500' : 'bg-sky-50 ring-2 ring-inset ring-sky-400') : ''}`}
+                      >
+                         {isDragOver && (
+                           <div className="absolute inset-0 flex items-center justify-center opacity-50 z-0 pointer-events-none">
+                              <span className="text-sky-500 font-bold text-xs uppercase tracking-widest bg-white/80 dark:bg-black/80 px-2 py-1 rounded">Soltar Aquí</span>
+                           </div>
+                         )}
+                         <div className="relative z-10 flex flex-col gap-2">
+                           {cellActivities.map(act => renderCard(act))}
+                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
