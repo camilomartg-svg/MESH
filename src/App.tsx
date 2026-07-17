@@ -3152,10 +3152,10 @@ export default function App() {
                   </label>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     required
                     value={newDrawingDays}
-                    onChange={(e) => setNewDrawingDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    onChange={(e) => setNewDrawingDays(Math.max(0, parseInt(e.target.value, 10) || 0))}
                     className={`w-full border rounded-xl py-2 px-3 text-sm focus:outline-none focus:border-amber-500 transition font-medium ${
                       isDarkMode
                         ? 'bg-[#16191D] border-white/10 text-white'

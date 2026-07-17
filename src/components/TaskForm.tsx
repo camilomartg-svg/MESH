@@ -276,11 +276,11 @@ export default function TaskForm({
             </label>
             <input
               type="number"
-              min="1"
+              min="0"
               max="60"
               required
               value={durationDays}
-              onChange={(e) => setDurationDays(Number(e.target.value))}
+              onChange={(e) => setDurationDays(Math.max(0, parseInt(e.target.value) || 0))}
               className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${
                 isDarkMode 
                   ? 'bg-[#16191D] border-white/10 text-white focus:border-white focus:ring-white' 
