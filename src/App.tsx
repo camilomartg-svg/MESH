@@ -2822,7 +2822,7 @@ export default function App() {
       <footer className={`border-t py-12 transition-colors duration-200 ${
         isDarkMode ? 'bg-[#0A0A0C] border-white/5' : 'bg-slate-50 border-slate-200'
       }`}>
-        <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center space-y-2">
           <img
             src={isDarkMode ? "https://i.postimg.cc/rzpVzNDL/image.png" : "https://i.postimg.cc/tR3YSryT/LOGO-NORA-NEGRO.png"}
             alt="Nora Logo"
@@ -2839,6 +2839,7 @@ export default function App() {
               }
             }}
           />
+          <span className={`text-xs font-medium tracking-widest ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>POWERED BY: nora</span>
         </div>
       </footer>
 
