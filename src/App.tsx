@@ -181,6 +181,34 @@ export default function App() {
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const [editingDrawing, setEditingDrawing] = useState<Drawing | null>(null);
 
+  const [localDates, setLocalDates] = useState<{ [id: string]: string }>({});
+  const [dateTimers, setDateTimers] = useState<{ [id: string]: NodeJS.Timeout }>({});
+
+  const handleDebouncedDateChange = (id: string, type: 'task' | 'drawing', newVal: string) => {
+    setLocalDates(prev => ({ ...prev, [id]: newVal }));
+    if (dateTimers[id]) clearTimeout(dateTimers[id]);
+    
+    const timer = setTimeout(() => {
+       if (type === 'task') handleUpdateTaskField(id, 'manualStart', newVal || null);
+       else handleUpdateDrawingField(id, 'manualStart', newVal || null);
+       
+       setLocalDates(prev => { const n = { ...prev }; delete n[id]; return n; });
+       setDateTimers(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }, 1500);
+    setDateTimers(prev => ({ ...prev, [id]: timer }));
+  };
+
+  const handleDateBlur = (id: string, type: 'task' | 'drawing', newVal: string) => {
+    if (dateTimers[id]) {
+      clearTimeout(dateTimers[id]);
+      if (type === 'task') handleUpdateTaskField(id, 'manualStart', newVal || null);
+      else handleUpdateDrawingField(id, 'manualStart', newVal || null);
+      
+      setLocalDates(prev => { const n = { ...prev }; delete n[id]; return n; });
+      setDateTimers(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }
+  };
+
   // Drawing Form States
   const [isDrawingFormOpen, setIsDrawingFormOpen] = useState(false);
   const [newDrawingName, setNewDrawingName] = useState('');
@@ -545,7 +573,7 @@ export default function App() {
       t.scheduledStart && t.scheduledEnd && 
       checkOverlap(newStart, newEnd, t.scheduledStart, t.scheduledEnd)
     );
-    if (collidingTask) return collidingTask.name;
+    if (collidingTask) return `[${collidingTask.code}] ${collidingTask.name}`;
     
     // Check drawings
     const collidingDrawing = (drawings || []).find(d => 
@@ -554,7 +582,7 @@ export default function App() {
       d.scheduledStart && d.scheduledEnd && 
       checkOverlap(newStart, newEnd, d.scheduledStart, d.scheduledEnd)
     );
-    if (collidingDrawing) return collidingDrawing.name;
+    if (collidingDrawing) return `[${collidingDrawing.code}] ${collidingDrawing.name}`;
 
     return null;
   };
@@ -2028,11 +2056,10 @@ export default function App() {
                               <div className="flex items-center gap-0.5">
                                 <input
                                   type="date"
-                                  value={task.manualStart || task.scheduledStart || ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value || null;
-                                    handleUpdateTaskField(task.id, 'manualStart', val);
-                                  }}
+                                  value={localDates[task.id] !== undefined ? localDates[task.id] : (task.manualStart || task.scheduledStart || '')}
+                                  onChange={(e) => handleDebouncedDateChange(task.id, 'task', e.target.value)}
+                                  onBlur={(e) => handleDateBlur(task.id, 'task', e.target.value)}
+                                  onWheel={(e) => e.currentTarget.blur()}
                                   className={`border rounded-lg py-0.5 px-1 focus:outline-none focus:border-amber-500 text-[10px] transition max-w-[95px] font-semibold cursor-pointer ${
                                     task.manualStart
                                       ? 'border-amber-500 text-amber-500 font-bold bg-amber-500/5'
@@ -2792,11 +2819,10 @@ export default function App() {
                                     <div className="flex items-center gap-0.5">
                                       <input
                                         type="date"
-                                        value={d.manualStart || d.scheduledStart || ''}
-                                        onChange={(e) => {
-                                          const val = e.target.value || null;
-                                          handleUpdateDrawingField(d.id, 'manualStart', val);
-                                        }}
+                                        value={localDates[d.id] !== undefined ? localDates[d.id] : (d.manualStart || d.scheduledStart || '')}
+                                        onChange={(e) => handleDebouncedDateChange(d.id, 'drawing', e.target.value)}
+                                        onBlur={(e) => handleDateBlur(d.id, 'drawing', e.target.value)}
+                                        onWheel={(e) => e.currentTarget.blur()}
                                         className={`border rounded-lg py-0.5 px-1 focus:outline-none focus:border-amber-500 text-[10px] transition max-w-[95px] font-semibold cursor-pointer ${
                                           d.manualStart
                                             ? 'border-amber-500 text-amber-500 font-bold bg-amber-500/5'
