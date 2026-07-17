@@ -671,7 +671,7 @@ export default function App() {
             const wasActive = Number(t.durationDays) > 0;
             const isNowActive = Number(newTask.durationDays) > 0;
             
-            if (isNowActive && !wasActive) {
+            if (isNowActive) {
               newTask.activationTimestamp = Date.now();
             } else if (!isNowActive && !newTask.manualStart) {
               newTask.activationTimestamp = undefined;
@@ -780,7 +780,7 @@ export default function App() {
             const wasActive = d.durationDays !== undefined && Number(d.durationDays) > 0;
             const isNowActive = newD.durationDays !== undefined && Number(newD.durationDays) > 0;
             
-            if (isNowActive && !wasActive) {
+            if (isNowActive) {
               newD.activationTimestamp = Date.now();
             } else if (!isNowActive && !newD.manualStart) {
               newD.activationTimestamp = undefined;
