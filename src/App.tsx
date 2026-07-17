@@ -2023,7 +2023,7 @@ export default function App() {
                             <td className={`px-2 py-2 text-center font-mono font-bold text-[11px] ${
                               isCompleted ? 'text-slate-500 line-through' : isDarkMode ? 'text-slate-400' : 'text-slate-500'
                             }`}>
-                              {task.code || 'S/C'}
+                              {task.code || 'S/C'} <span className="text-[7px] text-red-500 font-bold block">[{task.activationTimestamp ? task.activationTimestamp.toString().slice(-6) : '0'}]</span>
                             </td>
 
                             {/* Task Name & Description */}
