@@ -176,147 +176,60 @@ export function getNextWorkingDay(dateStr: string): string {
 
 // Schedule all tasks based on alphabetical order, manual overrides, and parallel links.
 // Each active modeler acts as a sequential pipeline of work unless a task is marked parallel.
-export function calculateSchedule(
+
+export function calculateUnifiedSchedule(
   tasks: Task[],
+  drawings: Drawing[],
   modelers: Modeler[],
   projectStartDate: string
-): Task[] {
+): { scheduledTasks: Task[], scheduledDrawings: Drawing[] } {
   const activeModelers = modelers.filter(m => m.active);
   if (activeModelers.length === 0) {
-    return tasks.map(t => ({
-      ...t,
-      scheduledStart: t.manualStart || null,
-      scheduledEnd: t.manualStart ? addWorkingDays(t.manualStart, t.durationDays).end : null,
-      isDelayed: false,
-    }));
+    return {
+      scheduledTasks: tasks.map(t => ({
+        ...t,
+        scheduledStart: t.manualStart || null,
+        scheduledEnd: t.manualStart ? addWorkingDays(t.manualStart, t.durationDays).end : null,
+        isDelayed: false,
+      })),
+      scheduledDrawings: drawings.map(d => ({
+        ...d,
+        scheduledStart: d.manualStart || null,
+        scheduledEnd: d.manualStart ? addWorkingDays(d.manualStart, d.durationDays || 3).end : null,
+      }))
+    };
   }
 
-  // 1. Sort tasks chronologically by when they were activated, falling back to alphabetical
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const isActiveA = a.durationDays > 0 || a.manualStart || a.isParallel;
-    const isActiveB = b.durationDays > 0 || b.manualStart || b.isParallel;
-    const timeA = a.activationTimestamp || (isActiveA ? 1 : 0);
-    const timeB = b.activationTimestamp || (isActiveB ? 1 : 0);
-    if (timeA > 0 && timeB > 0) {
-      if (timeA !== timeB) return timeA - timeB;
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    }
-    if (timeA > 0) return -1;
-    if (timeB > 0) return 1;
-    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-  });
+  type UnifiedItem = {
+    type: 'task' | 'drawing';
+    id: string;
+    assigneeId: string;
+    durationDays: number;
+    manualStart: string | null;
+    isParallel: boolean;
+    parallelWithId: string | null;
+    activationTimestamp: number;
+    name: string;
+  };
 
-  // 2. Pre-assign tasks to active modelers
-  const taskAssignees: { [taskId: string]: string } = {};
-  sortedTasks.forEach(task => {
-    let assigneeId = task.assigneeId;
+  const unifiedList: UnifiedItem[] = [];
+
+  // 1. Prepare Tasks
+  tasks.forEach(t => {
+    let assigneeId = t.assigneeId;
     if (!assigneeId || !activeModelers.some(m => m.id === assigneeId)) {
-      // Auto-assign to first active modeler for stability
       assigneeId = activeModelers[0].id;
     }
-    taskAssignees[task.id] = assigneeId;
-  });
-
-  // Group tasks by assignee for sequential logic
-  const modelerTasks: { [modelerId: string]: Task[] } = {};
-  activeModelers.forEach(m => {
-    modelerTasks[m.id] = sortedTasks.filter(t => taskAssignees[t.id] === m.id);
-  });
-
-  // Keep track of resolved start/end dates
-  const resolvedSchedules: { [id: string]: { start: string; end: string } } = {};
-  const resolving = new Set<string>(); // prevent infinite loops
-
-  function resolveTaskSchedule(taskId: string): { start: string; end: string } | null {
-    if (resolvedSchedules[taskId]) {
-      return resolvedSchedules[taskId];
-    }
-
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return null;
-
-    if (resolving.has(taskId)) {
-      // Circular reference fallback
-      const { start, end } = addWorkingDays(projectStartDate, task.durationDays);
-      return { start, end };
-    }
-
-    resolving.add(taskId);
-
-    let startStr = '';
-
-    // Case A: Manual Start Date override
-    if (task.manualStart) {
-      startStr = task.manualStart;
-    }
-    // Case B: Parallel linked to another specific activity
-    else if (task.isParallel && task.parallelWithTaskId) {
-      const parent = tasks.find(p => p.id === task.parallelWithTaskId);
-      if (parent && parent.id !== task.id) {
-        const parentSched = resolveTaskSchedule(parent.id);
-        if (parentSched) {
-          resolvedSchedules[taskId] = parentSched;
-          resolving.delete(taskId);
-          return parentSched;
-        }
-      }
-      startStr = projectStartDate;
-    }
-    // Case C: Standard sequential task
-    else {
-      // Process sequential queue of this modeler
-      const mId = taskAssignees[task.id];
-      const mTasks = modelerTasks[mId] || [];
-      const myIndex = mTasks.findIndex(t => t.id === task.id);
-      
-      let currentModelerDate = projectStartDate;
-
-      for (let i = 0; i < myIndex; i++) {
-        const prevTask = mTasks[i];
-        // Skip linked parallel tasks since they don't consume sequential line time
-        if (prevTask.isParallel && prevTask.parallelWithTaskId) {
-          continue;
-        }
-        
-        // Resolve schedule of the preceding task
-        const prevSched = resolveTaskSchedule(prevTask.id);
-        if (prevSched) {
-          const nextAvail = getNextWorkingDay(prevSched.end);
-          if (nextAvail > currentModelerDate) {
-            currentModelerDate = nextAvail;
-          }
-        }
-      }
-
-      startStr = currentModelerDate;
-    }
-
-    // Slide to first working day if starting on holiday or weekend
-    const { start, end } = addWorkingDays(startStr, task.durationDays);
-    const result = { start, end };
-    resolvedSchedules[taskId] = result;
-    resolving.delete(taskId);
-    return result;
-  }
-
-  // Calculate schedules for all tasks in order
-  sortedTasks.forEach(task => {
-    resolveTaskSchedule(task.id);
-  });
-
-  // Map resolved schedules back, maintaining original order in the state but calculated alphabetically
-  return tasks.map(task => {
-    let inheritedDuration = task.durationDays;
     
-    // Determine actual inherited duration by traversing parallel parent chain
-    if (task.isParallel && task.parallelWithTaskId) {
-      let currentParentId = task.parallelWithTaskId;
+    let inheritedDuration = Number(t.durationDays) || 0;
+    if (t.isParallel && t.parallelWithTaskId) {
+      let currentParentId: string | null = t.parallelWithTaskId;
       let safeCounter = 0;
       while (currentParentId && safeCounter < tasks.length) {
         const parent = tasks.find(p => p.id === currentParentId);
         if (!parent) break;
         if (!parent.isParallel || !parent.parallelWithTaskId) {
-           inheritedDuration = parent.durationDays;
+           inheritedDuration = Number(parent.durationDays) || 0;
            break;
         }
         currentParentId = parent.parallelWithTaskId;
@@ -324,24 +237,156 @@ export function calculateSchedule(
       }
     }
 
-    if (inheritedDuration <= 0) {
+    const isActive = inheritedDuration > 0 || t.manualStart || t.isParallel;
+    
+    unifiedList.push({
+      type: 'task',
+      id: t.id,
+      assigneeId,
+      durationDays: inheritedDuration,
+      manualStart: t.manualStart || null,
+      isParallel: t.isParallel || false,
+      parallelWithId: t.parallelWithTaskId || null,
+      activationTimestamp: t.activationTimestamp || (isActive ? 1 : 0),
+      name: t.name
+    });
+  });
+
+  // 2. Prepare Drawings
+  drawings.forEach(d => {
+    let assigneeId = d.assigneeId;
+    if (!assigneeId || !activeModelers.some(m => m.id === assigneeId)) {
+      assigneeId = activeModelers[0].id;
+    }
+    
+    let inheritedDuration = d.durationDays !== undefined ? Number(d.durationDays) : 3;
+    if (d.isParallel && d.parallelWithDrawingId) {
+      let currentParentId: string | null = d.parallelWithDrawingId;
+      let safeCounter = 0;
+      while (currentParentId && safeCounter < drawings.length) {
+        const parent = drawings.find(p => p.id === currentParentId);
+        if (!parent) break;
+        if (!parent.isParallel || !parent.parallelWithDrawingId) {
+           inheritedDuration = parent.durationDays !== undefined ? Number(parent.durationDays) : 3;
+           break;
+        }
+        currentParentId = parent.parallelWithDrawingId;
+        safeCounter++;
+      }
+    }
+
+    const isActive = inheritedDuration > 0 || d.manualStart || d.isParallel;
+    
+    unifiedList.push({
+      type: 'drawing',
+      id: d.id,
+      assigneeId,
+      durationDays: inheritedDuration,
+      manualStart: d.manualStart || null,
+      isParallel: d.isParallel || false,
+      parallelWithId: d.parallelWithDrawingId || null,
+      activationTimestamp: d.activationTimestamp || (isActive ? 1 : 0),
+      name: d.name
+    });
+  });
+
+  const busyPeriods: { [modelerId: string]: Array<{ start: string, end: string, id: string }> } = {};
+  const resolvedSchedules: { [id: string]: { start: string; end: string } } = {};
+  
+  // 3. Process Manual Items FIRST
+  const manualItems = unifiedList.filter(item => item.manualStart && item.durationDays > 0);
+  manualItems.sort((a, b) => a.manualStart!.localeCompare(b.manualStart!));
+
+  manualItems.forEach(item => {
+    const { start, end } = addWorkingDays(item.manualStart!, item.durationDays);
+    resolvedSchedules[item.id] = { start, end };
+    
+    if (!item.isParallel) {
+      if (!busyPeriods[item.assigneeId]) busyPeriods[item.assigneeId] = [];
+      busyPeriods[item.assigneeId].push({ start, end, id: item.id });
+    }
+  });
+
+  // 4. Process Sequential Items
+  const sequentialItems = unifiedList.filter(item => !item.manualStart && item.activationTimestamp > 0 && item.durationDays > 0);
+  sequentialItems.sort((a, b) => {
+    if (a.activationTimestamp !== b.activationTimestamp) return a.activationTimestamp - b.activationTimestamp;
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
+
+  const resolving = new Set<string>();
+
+  function resolveSequential(item: UnifiedItem): { start: string, end: string } | null {
+    if (resolvedSchedules[item.id]) return resolvedSchedules[item.id];
+    if (resolving.has(item.id)) return null;
+    resolving.add(item.id);
+
+    if (item.isParallel && item.parallelWithId) {
+      const parent = unifiedList.find(p => p.id === item.parallelWithId && p.type === item.type);
+      if (parent) {
+        const parentSched = resolvedSchedules[parent.id] || resolveSequential(parent);
+        if (parentSched) {
+          resolvedSchedules[item.id] = parentSched;
+          resolving.delete(item.id);
+          return parentSched;
+        }
+      }
+    } else {
+      let candidateStart = projectStartDate;
+      const periods = busyPeriods[item.assigneeId] || [];
+      
+      while (true) {
+        const { start, end } = addWorkingDays(candidateStart, item.durationDays);
+        
+        let hasOverlap = false;
+        let overlapEnd = '';
+        for (const p of periods) {
+          if (start <= p.end && end >= p.start) {
+            hasOverlap = true;
+            if (p.end > overlapEnd) overlapEnd = p.end;
+          }
+        }
+
+        if (!hasOverlap) {
+          resolvedSchedules[item.id] = { start, end };
+          periods.push({ start, end, id: item.id });
+          busyPeriods[item.assigneeId] = periods;
+          resolving.delete(item.id);
+          return { start, end };
+        }
+
+        candidateStart = getNextWorkingDay(overlapEnd);
+      }
+    }
+    
+    resolving.delete(item.id);
+    return null;
+  }
+
+  sequentialItems.forEach(item => {
+    resolveSequential(item);
+  });
+
+  // 5. Map back
+  const todayStr = formatDateKey(new Date());
+
+  const scheduledTasks = tasks.map(task => {
+    const item = unifiedList.find(u => u.type === 'task' && u.id === task.id);
+    if (!item || item.durationDays <= 0) {
       return {
         ...task,
-        durationDays: inheritedDuration,
+        durationDays: item ? item.durationDays : Number(task.durationDays) || 0,
         scheduledStart: null,
         scheduledEnd: null,
-        isDelayed: false,
+        isDelayed: false
       };
     }
 
-    const sched = resolveTaskSchedule(task.id);
+    const sched = resolvedSchedules[task.id];
     const start = sched ? sched.start : null;
     const end = sched ? sched.end : null;
-    const assigneeId = taskAssignees[task.id] || task.assigneeId;
-
-    const todayStr = formatDateKey(new Date());
+    
     let isDelayed = false;
-
     const isFinished = task.status === 'Modelado' || task.status === 'Realizado' || task.status === 'N/A';
     if (!isFinished) {
       if (task.targetDeliveryDate && end && end > task.targetDeliveryDate) {
@@ -353,172 +398,39 @@ export function calculateSchedule(
 
     return {
       ...task,
-      durationDays: inheritedDuration,
-      assigneeId,
+      durationDays: item.durationDays,
+      assigneeId: item.assigneeId,
       scheduledStart: start,
       scheduledEnd: end,
-      isDelayed,
+      isDelayed
     };
   });
-}
 
-export function calculateDrawingsSchedule(
-  drawings: Drawing[],
-  modelers: Modeler[],
-  projectStartDate: string
-): Drawing[] {
-  const activeModelers = modelers.filter(m => m.active);
-  if (activeModelers.length === 0) {
-    return drawings.map(d => ({
-      ...d,
-      scheduledStart: d.manualStart || null,
-      scheduledEnd: d.manualStart ? addWorkingDays(d.manualStart, d.durationDays || 3).end : null,
-    }));
-  }
-
-  // 1. Sort drawings chronologically by when they were activated, falling back to alphabetical
-  const sortedDrawings = [...drawings].sort((a, b) => {
-    const isActiveA = (a.durationDays !== undefined && a.durationDays > 0) || a.manualStart || a.isParallel;
-    const isActiveB = (b.durationDays !== undefined && b.durationDays > 0) || b.manualStart || b.isParallel;
-    const timeA = a.activationTimestamp || (isActiveA ? 1 : 0);
-    const timeB = b.activationTimestamp || (isActiveB ? 1 : 0);
-    if (timeA > 0 && timeB > 0) {
-      if (timeA !== timeB) return timeA - timeB;
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    }
-    if (timeA > 0) return -1;
-    if (timeB > 0) return 1;
-    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-  });
-
-  // 2. Pre-assign drawings to active modelers
-  const drawingAssignees: { [drawingId: string]: string } = {};
-  sortedDrawings.forEach(d => {
-    let assigneeId = d.assigneeId;
-    if (!assigneeId || !activeModelers.some(m => m.id === assigneeId)) {
-      assigneeId = activeModelers[0].id;
-    }
-    drawingAssignees[d.id] = assigneeId;
-  });
-
-  // Group drawings by assignee
-  const modelerDrawings: { [modelerId: string]: Drawing[] } = {};
-  activeModelers.forEach(m => {
-    modelerDrawings[m.id] = sortedDrawings.filter(d => drawingAssignees[d.id] === m.id);
-  });
-
-  const resolvedSchedules: { [id: string]: { start: string; end: string } } = {};
-  const resolving = new Set<string>();
-
-  function resolveDrawingSchedule(drawingId: string): { start: string; end: string } | null {
-    if (resolvedSchedules[drawingId]) {
-      return resolvedSchedules[drawingId];
-    }
-
-    const d = drawings.find(x => x.id === drawingId);
-    if (!d) return null;
-
-    const duration = d.durationDays !== undefined ? d.durationDays : 3;
-
-    if (resolving.has(drawingId)) {
-      const { start, end } = addWorkingDays(projectStartDate, duration);
-      return { start, end };
-    }
-
-    resolving.add(drawingId);
-
-    let startStr = '';
-
-    if (d.manualStart) {
-      startStr = d.manualStart;
-    } else if (d.isParallel && d.parallelWithDrawingId) {
-      const parent = drawings.find(p => p.id === d.parallelWithDrawingId);
-      if (parent && parent.id !== d.id) {
-        const parentSched = resolveDrawingSchedule(parent.id);
-        if (parentSched) {
-          resolvedSchedules[drawingId] = parentSched;
-          resolving.delete(drawingId);
-          return parentSched;
-        }
-      }
-      startStr = projectStartDate;
-    } else {
-      const mId = drawingAssignees[d.id];
-      const mDrawings = modelerDrawings[mId] || [];
-      const myIndex = mDrawings.findIndex(x => x.id === d.id);
-
-      let currentModelerDate = projectStartDate;
-
-      for (let i = 0; i < myIndex; i++) {
-        const prevDraw = mDrawings[i];
-        if (prevDraw.isParallel && prevDraw.parallelWithDrawingId) {
-          continue;
-        }
-
-        const prevSched = resolveDrawingSchedule(prevDraw.id);
-        if (prevSched) {
-          const nextAvail = getNextWorkingDay(prevSched.end);
-          if (nextAvail > currentModelerDate) {
-            currentModelerDate = nextAvail;
-          }
-        }
-      }
-
-      startStr = currentModelerDate;
-    }
-
-    const { start, end } = addWorkingDays(startStr, duration);
-    const result = { start, end };
-    resolvedSchedules[drawingId] = result;
-    resolving.delete(drawingId);
-    return result;
-  }
-
-  sortedDrawings.forEach(d => {
-    resolveDrawingSchedule(d.id);
-  });
-
-  return drawings.map(d => {
-    let inheritedDuration = d.durationDays !== undefined ? d.durationDays : 3;
-    
-    // Determine actual inherited duration by traversing parallel parent chain
-    if (d.isParallel && d.parallelWithDrawingId) {
-      let currentParentId = d.parallelWithDrawingId;
-      let safeCounter = 0;
-      while (currentParentId && safeCounter < drawings.length) {
-        const parent = drawings.find(p => p.id === currentParentId);
-        if (!parent) break;
-        if (!parent.isParallel || !parent.parallelWithDrawingId) {
-           inheritedDuration = parent.durationDays !== undefined ? parent.durationDays : 3;
-           break;
-        }
-        currentParentId = parent.parallelWithDrawingId;
-        safeCounter++;
-      }
-    }
-
-    if (inheritedDuration <= 0) {
+  const scheduledDrawings = drawings.map(d => {
+    const item = unifiedList.find(u => u.type === 'drawing' && u.id === d.id);
+    if (!item || item.durationDays <= 0) {
       return {
         ...d,
-        durationDays: inheritedDuration,
+        durationDays: item ? item.durationDays : (d.durationDays !== undefined ? Number(d.durationDays) : 3),
         scheduledStart: null,
         scheduledEnd: null,
-        deliveryDate: null,
+        deliveryDate: null
       };
     }
 
-    const sched = resolveDrawingSchedule(d.id);
+    const sched = resolvedSchedules[d.id];
     const start = sched ? sched.start : null;
     const end = sched ? sched.end : null;
-    const assigneeId = drawingAssignees[d.id] || d.assigneeId;
 
     return {
       ...d,
-      durationDays: inheritedDuration,
-      assigneeId,
+      durationDays: item.durationDays,
+      assigneeId: item.assigneeId,
       scheduledStart: start,
       scheduledEnd: end,
-      deliveryDate: end, // Keep deliveryDate synchronized with scheduledEnd
+      deliveryDate: end
     };
   });
+
+  return { scheduledTasks, scheduledDrawings };
 }
