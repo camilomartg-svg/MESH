@@ -242,10 +242,13 @@ export function calculateSchedule(
       const parent = tasks.find(p => p.id === task.parallelWithTaskId);
       if (parent && parent.id !== task.id) {
         const parentSched = resolveTaskSchedule(parent.id);
-        startStr = parentSched ? parentSched.start : projectStartDate;
-      } else {
-        startStr = projectStartDate;
+        if (parentSched) {
+          resolvedSchedules[taskId] = parentSched;
+          resolving.delete(taskId);
+          return parentSched;
+        }
       }
+      startStr = projectStartDate;
     }
     // Case C: Standard sequential task
     else {
@@ -291,9 +294,28 @@ export function calculateSchedule(
 
   // Map resolved schedules back, maintaining original order in the state but calculated alphabetically
   return tasks.map(task => {
-    if (task.durationDays <= 0) {
+    let inheritedDuration = task.durationDays;
+    
+    // Determine actual inherited duration by traversing parallel parent chain
+    if (task.isParallel && task.parallelWithTaskId) {
+      let currentParentId = task.parallelWithTaskId;
+      let safeCounter = 0;
+      while (currentParentId && safeCounter < tasks.length) {
+        const parent = tasks.find(p => p.id === currentParentId);
+        if (!parent) break;
+        if (!parent.isParallel || !parent.parallelWithTaskId) {
+           inheritedDuration = parent.durationDays;
+           break;
+        }
+        currentParentId = parent.parallelWithTaskId;
+        safeCounter++;
+      }
+    }
+
+    if (inheritedDuration <= 0) {
       return {
         ...task,
+        durationDays: inheritedDuration,
         scheduledStart: null,
         scheduledEnd: null,
         isDelayed: false,
@@ -319,6 +341,7 @@ export function calculateSchedule(
 
     return {
       ...task,
+      durationDays: inheritedDuration,
       assigneeId,
       scheduledStart: start,
       scheduledEnd: end,
@@ -388,10 +411,13 @@ export function calculateDrawingsSchedule(
       const parent = drawings.find(p => p.id === d.parallelWithDrawingId);
       if (parent && parent.id !== d.id) {
         const parentSched = resolveDrawingSchedule(parent.id);
-        startStr = parentSched ? parentSched.start : projectStartDate;
-      } else {
-        startStr = projectStartDate;
+        if (parentSched) {
+          resolvedSchedules[drawingId] = parentSched;
+          resolving.delete(drawingId);
+          return parentSched;
+        }
       }
+      startStr = projectStartDate;
     } else {
       const mId = drawingAssignees[d.id];
       const mDrawings = modelerDrawings[mId] || [];
@@ -429,10 +455,28 @@ export function calculateDrawingsSchedule(
   });
 
   return drawings.map(d => {
-    const duration = d.durationDays !== undefined ? d.durationDays : 3;
-    if (duration <= 0) {
+    let inheritedDuration = d.durationDays !== undefined ? d.durationDays : 3;
+    
+    // Determine actual inherited duration by traversing parallel parent chain
+    if (d.isParallel && d.parallelWithDrawingId) {
+      let currentParentId = d.parallelWithDrawingId;
+      let safeCounter = 0;
+      while (currentParentId && safeCounter < drawings.length) {
+        const parent = drawings.find(p => p.id === currentParentId);
+        if (!parent) break;
+        if (!parent.isParallel || !parent.parallelWithDrawingId) {
+           inheritedDuration = parent.durationDays !== undefined ? parent.durationDays : 3;
+           break;
+        }
+        currentParentId = parent.parallelWithDrawingId;
+        safeCounter++;
+      }
+    }
+
+    if (inheritedDuration <= 0) {
       return {
         ...d,
+        durationDays: inheritedDuration,
         scheduledStart: null,
         scheduledEnd: null,
         deliveryDate: null,
@@ -446,6 +490,7 @@ export function calculateDrawingsSchedule(
 
     return {
       ...d,
+      durationDays: inheritedDuration,
       assigneeId,
       scheduledStart: start,
       scheduledEnd: end,
