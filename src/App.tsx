@@ -671,7 +671,7 @@ export default function App() {
             const wasActive = Number(t.durationDays) > 0;
             const isNowActive = Number(newTask.durationDays) > 0;
             
-            if (isNowActive) {
+            if (isNowActive && (!wasActive || !t.activationTimestamp)) {
               newTask.activationTimestamp = Date.now();
             } else if (!isNowActive && !newTask.manualStart) {
               newTask.activationTimestamp = undefined;
@@ -700,7 +700,7 @@ export default function App() {
     const updated = tasks.map((t, idx) => {
       if (selectedTaskIds.includes(t.id)) {
         const newTask = { ...t, durationDays: days };
-        if (days > 0 && !(Number(t.durationDays) > 0)) {
+        if (days > 0 && (!(Number(t.durationDays) > 0) || !t.activationTimestamp)) {
            newTask.activationTimestamp = ts + idx; // unique but sequential
         } else if (days === 0 && !newTask.manualStart) {
            newTask.activationTimestamp = undefined;
@@ -780,7 +780,7 @@ export default function App() {
             const wasActive = d.durationDays !== undefined && Number(d.durationDays) > 0;
             const isNowActive = newD.durationDays !== undefined && Number(newD.durationDays) > 0;
             
-            if (isNowActive) {
+            if (isNowActive && (!wasActive || !d.activationTimestamp)) {
               newD.activationTimestamp = Date.now();
             } else if (!isNowActive && !newD.manualStart) {
               newD.activationTimestamp = undefined;
@@ -1039,7 +1039,7 @@ export default function App() {
     const updated = drawings.map((d, idx) => {
       if (selectedDrawingIds.includes(d.id)) {
         const newD = { ...d, durationDays: days };
-        if (days > 0 && !(d.durationDays !== undefined && Number(d.durationDays) > 0)) {
+        if (days > 0 && (!(d.durationDays !== undefined && Number(d.durationDays) > 0) || !d.activationTimestamp)) {
            newD.activationTimestamp = ts + idx;
         } else if (days === 0 && !newD.manualStart) {
            newD.activationTimestamp = undefined;
