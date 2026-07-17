@@ -222,6 +222,8 @@ export function calculateUnifiedSchedule(
     }
     
     let inheritedDuration = Number(t.durationDays) || 0;
+    let inheritedTimestamp = t.activationTimestamp || 0;
+    
     if (t.isParallel && t.parallelWithTaskId) {
       let currentParentId: string | null = t.parallelWithTaskId;
       let safeCounter = 0;
@@ -230,6 +232,7 @@ export function calculateUnifiedSchedule(
         if (!parent) break;
         if (!parent.isParallel || !parent.parallelWithTaskId) {
            inheritedDuration = Number(parent.durationDays) || 0;
+           inheritedTimestamp = parent.activationTimestamp || 0;
            break;
         }
         currentParentId = parent.parallelWithTaskId;
@@ -247,7 +250,7 @@ export function calculateUnifiedSchedule(
       manualStart: t.manualStart || null,
       isParallel: t.isParallel || false,
       parallelWithId: t.parallelWithTaskId || null,
-      activationTimestamp: t.activationTimestamp || (isActive ? 1 : 0),
+      activationTimestamp: inheritedTimestamp || (isActive ? 1 : 0),
       name: t.name
     });
   });
@@ -260,6 +263,8 @@ export function calculateUnifiedSchedule(
     }
     
     let inheritedDuration = d.durationDays !== undefined ? Number(d.durationDays) : 3;
+    let inheritedTimestamp = d.activationTimestamp || 0;
+    
     if (d.isParallel && d.parallelWithDrawingId) {
       let currentParentId: string | null = d.parallelWithDrawingId;
       let safeCounter = 0;
@@ -268,6 +273,7 @@ export function calculateUnifiedSchedule(
         if (!parent) break;
         if (!parent.isParallel || !parent.parallelWithDrawingId) {
            inheritedDuration = parent.durationDays !== undefined ? Number(parent.durationDays) : 3;
+           inheritedTimestamp = parent.activationTimestamp || 0;
            break;
         }
         currentParentId = parent.parallelWithDrawingId;
@@ -285,7 +291,7 @@ export function calculateUnifiedSchedule(
       manualStart: d.manualStart || null,
       isParallel: d.isParallel || false,
       parallelWithId: d.parallelWithDrawingId || null,
-      activationTimestamp: d.activationTimestamp || (isActive ? 1 : 0),
+      activationTimestamp: inheritedTimestamp || (isActive ? 1 : 0),
       name: d.name
     });
   });
