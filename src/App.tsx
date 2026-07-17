@@ -9,6 +9,7 @@ import {
 } from './utils/firebase';
 import TaskForm from './components/TaskForm';
 import CalendarView from './components/CalendarView';
+import TimelineView from './components/TimelineView';
 import ModelersSettings from './components/ModelersSettings';
 import EmailSync from './components/EmailSync';
 import DrawingDatePicker from './components/DrawingDatePicker';
@@ -148,7 +149,7 @@ const DRAWING_SERIES_OPTIONS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'checklist' | 'planimetria' | 'calendar' | 'modelers' | 'email'>('checklist');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'planimetria' | 'calendar' | 'timeline' | 'modelers' | 'email'>('checklist');
   const [selectedCategory, setSelectedCategory] = useState<string | 'TODOS'>('TODOS');
   const [selectedDrawingSeries, setSelectedDrawingSeries] = useState<string | 'TODAS'>('TODAS');
   const [taskSearchQuery, setTaskSearchQuery] = useState('');
@@ -1183,6 +1184,37 @@ export default function App() {
     );
   }
 
+  const handleReorderActivities = (modelerId: string, orderedItems: { id: string, type: 'task' | 'drawing' }[]) => {
+    const baseTs = Date.now();
+    
+    const updatedTasks = tasks.map(t => {
+      const orderIndex = orderedItems.findIndex(item => item.id === t.id && item.type === 'task');
+      if (orderIndex !== -1) {
+         return { ...t, activationTimestamp: baseTs + orderIndex, assigneeId: modelerId === 'unassigned' ? null : modelerId };
+      }
+      return t;
+    });
+
+    const updatedDrawings = drawings.map(d => {
+      const orderIndex = orderedItems.findIndex(item => item.id === d.id && item.type === 'drawing');
+      if (orderIndex !== -1) {
+         return { ...d, activationTimestamp: baseTs + orderIndex, assigneeId: modelerId === 'unassigned' ? null : modelerId };
+      }
+      return d;
+    });
+
+    setTasks(updatedTasks);
+    setDrawings(updatedDrawings);
+  };
+
+  const handleUpdateActivity = (id: string, type: 'task' | 'drawing', field: string, value: any) => {
+    if (type === 'task') {
+      handleUpdateTaskField(id, field as keyof Task, value);
+    } else {
+      handleUpdateDrawingField(id, field as keyof Drawing, value);
+    }
+  };
+
   // --- PROJECT TIMELINE CALCULATIONS ---
   const activeTasksForSummary = tasks.filter(t => Number(t.durationDays) > 0 || t.manualStart || t.isParallel);
   const activeDrawingsForSummary = drawings.filter(d => (d.durationDays !== undefined && Number(d.durationDays) > 0) || d.manualStart || d.isParallel);
@@ -1465,6 +1497,17 @@ export default function App() {
             >
               <Calendar size={16} />
               Calendario de Entregas
+            </button>
+            <button
+              onClick={() => setActiveTab('timeline')}
+              className={`pb-4 px-1 border-b-2 font-bold text-sm transition-all flex items-center gap-2 ${
+                activeTab === 'timeline'
+                  ? (isDarkMode ? 'border-white text-white' : 'border-slate-950 text-slate-950')
+                  : (isDarkMode ? 'border-transparent text-slate-500 hover:text-slate-300 hover:border-white/10' : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200')
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+              Línea de Tiempo
             </button>
             <button
               onClick={() => setActiveTab('modelers')}
@@ -2926,7 +2969,25 @@ export default function App() {
 
         {/* TAB CONTENT: CALENDAR */}
         {activeTab === 'calendar' && (
-          <CalendarView tasks={tasks} modelers={modelers} isDarkMode={isDarkMode} />
+          <CalendarView 
+            tasks={tasks} 
+            drawings={drawings}
+            modelers={modelers} 
+            isDarkMode={isDarkMode} 
+            onUpdateActivity={handleUpdateActivity}
+          />
+        )}
+
+        {/* TAB CONTENT: TIMELINE */}
+        {activeTab === 'timeline' && (
+          <TimelineView 
+            tasks={tasks} 
+            drawings={drawings} 
+            modelers={modelers} 
+            isDarkMode={isDarkMode} 
+            onUpdateActivity={handleUpdateActivity}
+            onReorder={handleReorderActivities}
+          />
         )}
 
         {/* TAB CONTENT: MODELERS */}
