@@ -50,12 +50,12 @@ export function getGoogleDrivePreviewUrl(url: string): string | null {
   // Standard file/d/ FILE_ID /view
   const fileDMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileDMatch && fileDMatch[1]) {
-    return `https://docs.google.com/uc?export=view&id=${fileDMatch[1]}`;
+    return `https://drive.google.com/thumbnail?id=${fileDMatch[1]}&sz=w800`;
   }
   // open?id= FILE_ID
   const openIdMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (openIdMatch && openIdMatch[1]) {
-    return `https://docs.google.com/uc?export=view&id=${openIdMatch[1]}`;
+    return `https://drive.google.com/thumbnail?id=${openIdMatch[1]}&sz=w800`;
   }
   return null;
 }
