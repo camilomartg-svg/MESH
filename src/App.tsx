@@ -1546,6 +1546,7 @@ export default function App() {
                       <input
                         type="number"
                         min="0"
+                        onWheel={(e) => (e.target as HTMLElement).blur()}
                         placeholder="Días"
                         id="bulk-duration-input"
                         className={`w-full bg-transparent border-0 focus:outline-none text-xs font-bold text-center py-1 ${
@@ -1845,6 +1846,7 @@ export default function App() {
                                 <input
                                   type="number"
                                   min="0"
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
                                   value={task.durationDays}
                                   onChange={(e) => {
                                     const valStr = e.target.value;
@@ -2286,6 +2288,7 @@ export default function App() {
                     <input
                       type="number"
                       min="0"
+                      onWheel={(e) => (e.target as HTMLElement).blur()}
                       placeholder="Ej. 5"
                       id="bulk-drawing-days-input"
                       className={`w-16 border rounded-lg py-1 px-2 focus:outline-none focus:border-amber-500 font-semibold text-center ${
@@ -2607,6 +2610,7 @@ export default function App() {
                                       <input
                                         type="number"
                                         min="0"
+                                        onWheel={(e) => (e.target as HTMLElement).blur()}
                                         value={d.durationDays !== undefined ? d.durationDays : 3}
                                         onChange={(e) => {
                                           const valStr = e.target.value;
@@ -3155,6 +3159,7 @@ export default function App() {
                   <input
                     type="number"
                     min="0"
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
                     required
                     value={newDrawingDays}
                     onChange={(e) => setNewDrawingDays(Math.max(0, parseInt(e.target.value, 10) || 0))}

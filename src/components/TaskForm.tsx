@@ -278,6 +278,7 @@ export default function TaskForm({
               type="number"
               min="0"
               max="60"
+              onWheel={(e) => (e.target as HTMLElement).blur()}
               required
               value={durationDays}
               onChange={(e) => {
