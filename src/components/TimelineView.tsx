@@ -100,7 +100,9 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
 
     const days: Date[] = [];
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      days.push(new Date(d));
+      if (!isWeekend(d) && !getHolidayName(d)) {
+        days.push(new Date(d));
+      }
     }
     return days;
   }, [allActivities]);
@@ -214,33 +216,44 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
           {act.name}
         </h4>
 
-        {/* Botón Paralelo e Indicador */}
-        <div className="flex items-center gap-1.5 mt-2">
-           <button
-             type="button"
-             onClick={(e) => {
-               e.stopPropagation();
-               onUpdateActivity(act.id, act.type, 'isParallel', !act.isParallel);
+        {/* Botón Paralelo e Indicador (Dropdown) */}
+        <div className="flex items-center gap-1 mt-2">
+           <select
+             value={act.isParallel ? (act.parallelWithId || 'yes') : 'no'}
+             onClick={e => e.stopPropagation()}
+             onChange={(e) => {
+               const val = e.target.value;
+               if (val === 'no') {
+                 onUpdateActivity(act.id, act.type, 'isParallel', false);
+                 if (act.type === 'task') onUpdateActivity(act.id, act.type, 'parallelWithTaskId', null);
+                 else onUpdateActivity(act.id, act.type, 'parallelWithDrawingId', null);
+               } else {
+                 onUpdateActivity(act.id, act.type, 'isParallel', true);
+                 if (val !== 'yes') {
+                   if (act.type === 'task') onUpdateActivity(act.id, act.type, 'parallelWithTaskId', val);
+                   else onUpdateActivity(act.id, act.type, 'parallelWithDrawingId', val);
+                 }
+               }
              }}
-             className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition flex items-center shadow-sm border ${
+             className={`pl-1.5 pr-5 py-0.5 rounded text-[10px] font-bold transition shadow-sm border appearance-none cursor-pointer focus:outline-none ${
                act.isParallel 
                  ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
                  : (isDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 border-slate-200')
              }`}
-             title="Activar/Desactivar tarea paralela"
+             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='${act.isParallel ? '%23ffffff' : '%2394a3b8'}'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 2px center', backgroundSize: '12px' }}
+             title="Seleccionar paralelismo"
            >
-             {act.isParallel ? 'Sí' : 'No'}
-           </button>
-           {act.isParallel && parentCode && (
-             <span className="text-[9px] font-semibold text-slate-400 truncate max-w-[120px]" title="Sigue a esta actividad">
-               Sigue a [{parentCode}]
-             </span>
-           )}
-           {act.isParallel && !parentCode && (
-             <span className="text-[9px] font-semibold text-slate-400 truncate max-w-[120px]" title="Sin predecesor asignado">
-               Paralela
-             </span>
-           )}
+             <option value="no">No</option>
+             {act.isParallel && !act.parallelWithId && <option value="yes">Sí</option>}
+             <optgroup label="Paralela con:">
+                {allActivities
+                  .filter(a => a.assigneeId === act.assigneeId && a.id !== act.id && a.type === act.type)
+                  .map(a => (
+                     <option key={a.id} value={a.id}>[{a.code}] {a.name.substring(0, 15)}...</option>
+                  ))
+                }
+             </optgroup>
+           </select>
         </div>
         
         <div className={`flex justify-between items-end mt-2 pt-2 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
@@ -312,25 +325,17 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
           <div className="flex flex-col">
             {calendarGridDays.map(day => {
               const dateStr = formatDateKey(day);
-              const wknd = isWeekend(day);
-              const hol = getHolidayName(day);
-              const isNonWorking = wknd || hol;
-
-              const rowBg = isNonWorking 
-                ? (isDarkMode ? 'bg-rose-950/10' : 'bg-rose-50/50') 
-                : (isDarkMode ? 'bg-transparent' : 'bg-white');
 
               return (
-                <div key={dateStr} className={`flex border-b transition-colors hover:bg-slate-100/50 dark:hover:bg-white/[0.02] ${rowBg} ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                <div key={dateStr} className={`flex border-b transition-colors hover:bg-slate-100/50 dark:hover:bg-white/[0.02] ${isDarkMode ? 'bg-transparent' : 'bg-white'} ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
                   {/* Y-Axis Label */}
                   <div className={`w-32 flex-shrink-0 p-3 border-r flex flex-col items-center justify-center text-center ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
-                    <span className={`text-sm font-bold ${isNonWorking ? 'text-rose-500' : (isDarkMode ? 'text-slate-300' : 'text-slate-700')}`}>
+                    <span className={`text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                       {day.getDate()} {monthNames[day.getMonth()]}
                     </span>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${isNonWorking ? 'text-rose-400' : 'text-slate-400'}`}>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider text-slate-400`}>
                       {dayNames[day.getDay()]}
                     </span>
-                    {hol && <span className="text-[9px] text-rose-500 mt-1 italic leading-tight px-1">{hol}</span>}
                   </div>
 
                   {/* Modeler Cells */}

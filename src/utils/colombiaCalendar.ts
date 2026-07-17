@@ -295,15 +295,42 @@ export function calculateUnifiedSchedule(
   
   // 3. Process Manual Items FIRST
   const manualItems = unifiedList.filter(item => item.manualStart && item.durationDays > 0);
-  manualItems.sort((a, b) => a.manualStart!.localeCompare(b.manualStart!));
+  manualItems.sort((a, b) => b.activationTimestamp - a.activationTimestamp); // High priority manual items get the slot first
 
   manualItems.forEach(item => {
-    const { start, end } = addWorkingDays(item.manualStart!, item.durationDays);
-    resolvedSchedules[item.id] = { start, end };
+    let candidateStart = item.manualStart!;
+    const periods = busyPeriods[item.assigneeId] || [];
     
-    if (!item.isParallel) {
-      if (!busyPeriods[item.assigneeId]) busyPeriods[item.assigneeId] = [];
-      busyPeriods[item.assigneeId].push({ start, end, id: item.id });
+    while (true) {
+      while (isWeekend(parseDate(candidateStart)) || getHolidayName(parseDate(candidateStart))) {
+        candidateStart = getNextWorkingDay(candidateStart);
+      }
+
+      const { start, end } = addWorkingDays(candidateStart, item.durationDays);
+      let hasOverlap = false;
+      let overlapEnd = '';
+
+      for (const p of periods) {
+        if (start <= p.end && end >= p.start) {
+          if (item.isParallel && item.parallelWithId === p.id) {
+            // Permitted overlap
+          } else {
+            hasOverlap = true;
+            if (p.end > overlapEnd) overlapEnd = p.end;
+          }
+        }
+      }
+
+      if (!hasOverlap) {
+        resolvedSchedules[item.id] = { start, end };
+        if (!item.isParallel) {
+          periods.push({ start, end, id: item.id });
+          busyPeriods[item.assigneeId] = periods;
+        }
+        break;
+      }
+
+      candidateStart = getNextWorkingDay(overlapEnd);
     }
   });
 

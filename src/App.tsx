@@ -1245,6 +1245,7 @@ export default function App() {
         return {
           ...t,
           manualStart: newDate,
+          activationTimestamp: Date.now(),
           assigneeId: t.id === draggedId ? (newModelerId === 'unassigned' ? null : newModelerId) : t.assigneeId
         };
       }
@@ -1257,6 +1258,7 @@ export default function App() {
         return {
           ...d,
           manualStart: newDate,
+          activationTimestamp: Date.now(),
           assigneeId: d.id === draggedId ? (newModelerId === 'unassigned' ? null : newModelerId) : d.assigneeId
         };
       }
