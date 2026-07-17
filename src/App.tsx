@@ -603,6 +603,50 @@ export default function App() {
     return null;
   };
 
+  const getTaskBlockIds = (startId: string, currentTasks: Task[]) => {
+    const parentOf: Record<string, string> = {};
+    const childrenOf: Record<string, string[]> = {};
+    currentTasks.forEach(t => {
+      if (t.isParallel && t.parallelWithTaskId) {
+        parentOf[t.id] = t.parallelWithTaskId;
+        if (!childrenOf[t.parallelWithTaskId]) childrenOf[t.parallelWithTaskId] = [];
+        childrenOf[t.parallelWithTaskId].push(t.id);
+      }
+    });
+    let rootId = startId;
+    while (parentOf[rootId]) rootId = parentOf[rootId];
+    const block = new Set<string>();
+    const queue = [rootId];
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      block.add(curr);
+      if (childrenOf[curr]) queue.push(...childrenOf[curr]);
+    }
+    return Array.from(block);
+  };
+
+  const getDrawingBlockIds = (startId: string, currentDrawings: Drawing[]) => {
+    const parentOf: Record<string, string> = {};
+    const childrenOf: Record<string, string[]> = {};
+    currentDrawings.forEach(d => {
+      if (d.isParallel && d.parallelWithDrawingId) {
+        parentOf[d.id] = d.parallelWithDrawingId;
+        if (!childrenOf[d.parallelWithDrawingId]) childrenOf[d.parallelWithDrawingId] = [];
+        childrenOf[d.parallelWithDrawingId].push(d.id);
+      }
+    });
+    let rootId = startId;
+    while (parentOf[rootId]) rootId = parentOf[rootId];
+    const block = new Set<string>();
+    const queue = [rootId];
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      block.add(curr);
+      if (childrenOf[curr]) queue.push(...childrenOf[curr]);
+    }
+    return Array.from(block);
+  };
+
   const handleUpdateTaskField = (id: string, field: keyof Task, value: any) => {
     if (field === 'manualStart' && value) {
       const task = tasks.find(t => t.id === id);
@@ -614,22 +658,29 @@ export default function App() {
         }
       }
     }
-    setTasks(prev => prev.map(t => {
-      if (t.id === id) {
-        const newTask = { ...t, [field]: value };
-        const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
-        if (isActivatingField) {
-          const isActive = Number(newTask.durationDays) > 0 || newTask.manualStart || newTask.isParallel;
-          if (isActive && !newTask.activationTimestamp) {
-            newTask.activationTimestamp = Date.now();
-          } else if (!isActive) {
-            newTask.activationTimestamp = undefined;
-          }
-        }
-        return newTask;
+    setTasks(prev => {
+      let targetIds = [id];
+      if (field === 'manualStart') {
+        targetIds = getTaskBlockIds(id, prev);
       }
-      return t;
-    }));
+      return prev.map(t => {
+        if (targetIds.includes(t.id)) {
+          const newTask = { ...t, [field]: value };
+          const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
+          if (isActivatingField) {
+            const isActive = Number(newTask.durationDays) > 0 || newTask.manualStart || newTask.isParallel;
+            if (isActive && !newTask.activationTimestamp) {
+              newTask.activationTimestamp = Date.now();
+            } else if (!isActive) {
+              newTask.activationTimestamp = undefined;
+            }
+            if (field === 'manualStart') newTask.activationTimestamp = Date.now();
+          }
+          return newTask;
+        }
+        return t;
+      });
+    });
   };
 
   const handleBulkAssign = (assigneeId: string | null) => {
@@ -714,22 +765,29 @@ export default function App() {
         }
       }
     }
-    setDrawings(prev => prev.map(d => {
-      if (d.id === id) {
-        const newD = { ...d, [field]: value };
-        const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
-        if (isActivatingField) {
-          const isActive = (newD.durationDays !== undefined && Number(newD.durationDays) > 0) || newD.manualStart || newD.isParallel;
-          if (isActive && !newD.activationTimestamp) {
-            newD.activationTimestamp = Date.now();
-          } else if (!isActive) {
-            newD.activationTimestamp = undefined;
-          }
-        }
-        return newD;
+    setDrawings(prev => {
+      let targetIds = [id];
+      if (field === 'manualStart') {
+        targetIds = getDrawingBlockIds(id, prev);
       }
-      return d;
-    }));
+      return prev.map(d => {
+        if (targetIds.includes(d.id)) {
+          const newD = { ...d, [field]: value };
+          const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
+          if (isActivatingField) {
+            const isActive = (newD.durationDays !== undefined && Number(newD.durationDays) > 0) || newD.manualStart || newD.isParallel;
+            if (isActive && !newD.activationTimestamp) {
+              newD.activationTimestamp = Date.now();
+            } else if (!isActive) {
+              newD.activationTimestamp = undefined;
+            }
+            if (field === 'manualStart') newD.activationTimestamp = Date.now();
+          }
+          return newD;
+        }
+        return d;
+      });
+    });
   };
 
   const handleClearDrawingDates = () => {
