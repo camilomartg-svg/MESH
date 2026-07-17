@@ -90,10 +90,8 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
 
     Object.keys(grouped).forEach(key => {
       grouped[key].sort((a, b) => {
-        if (a.scheduledStart && b.scheduledStart) return a.scheduledStart.localeCompare(b.scheduledStart);
-        if (a.scheduledStart) return -1;
-        if (b.scheduledStart) return 1;
-        return a.activationTimestamp - b.activationTimestamp;
+        // Sort strictly by priority (activationTimestamp) to ensure drag-and-drop always visually works
+        return (a.activationTimestamp || 0) - (b.activationTimestamp || 0);
       });
     });
 
