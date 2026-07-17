@@ -668,10 +668,12 @@ export default function App() {
           const newTask = { ...t, [field]: value };
           const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
           if (isActivatingField) {
-            const isActive = Number(newTask.durationDays) > 0 || newTask.manualStart || newTask.isParallel;
-            if (isActive && !newTask.activationTimestamp) {
+            const wasActive = Number(t.durationDays) > 0;
+            const isNowActive = Number(newTask.durationDays) > 0;
+            
+            if (isNowActive && !wasActive) {
               newTask.activationTimestamp = Date.now();
-            } else if (!isActive) {
+            } else if (!isNowActive && !newTask.manualStart) {
               newTask.activationTimestamp = undefined;
             }
             if (field === 'manualStart') newTask.activationTimestamp = Date.now();
@@ -775,10 +777,12 @@ export default function App() {
           const newD = { ...d, [field]: value };
           const isActivatingField = ['durationDays', 'assigneeId', 'isParallel', 'manualStart'].includes(field as string);
           if (isActivatingField) {
-            const isActive = (newD.durationDays !== undefined && Number(newD.durationDays) > 0) || newD.manualStart || newD.isParallel;
-            if (isActive && !newD.activationTimestamp) {
+            const wasActive = d.durationDays !== undefined && Number(d.durationDays) > 0;
+            const isNowActive = newD.durationDays !== undefined && Number(newD.durationDays) > 0;
+            
+            if (isNowActive && !wasActive) {
               newD.activationTimestamp = Date.now();
-            } else if (!isActive) {
+            } else if (!isNowActive && !newD.manualStart) {
               newD.activationTimestamp = undefined;
             }
             if (field === 'manualStart') newD.activationTimestamp = Date.now();
