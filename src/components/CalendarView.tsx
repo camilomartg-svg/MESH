@@ -179,6 +179,7 @@ export default function CalendarView({ tasks, modelers, isDarkMode = false }: Ca
 
               // Find all tasks scheduled for this day
               const dayTasks = tasks.filter((t) => {
+                if (isWknd || holidayName) return false;
                 if (!t.scheduledStart || !t.scheduledEnd) return false;
                 return dateStr >= t.scheduledStart && dateStr <= t.scheduledEnd;
               });
