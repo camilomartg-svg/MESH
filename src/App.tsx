@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { Task, Modeler, ProjectSettings, EmailLog, BimCategory, ProjectData, Drawing, DevLogEntry, DevLogType, MediaAttachment, DevNotesData } from './types';
-import { calculateSchedule, calculateDrawingsSchedule, formatDateKey, addWorkingDays, getWorkingDaysCount } from './utils/colombiaCalendar';
+import { calculateSchedule, calculateDrawingsSchedule, formatDateKey, addWorkingDays, getWorkingDaysCount, parseDate } from './utils/colombiaCalendar';
 import { DEFAULT_PROJECT_DATA, getInitialTaskIdForDrawing } from './utils/defaultData';
 import { 
   uploadFileToDrive, 
@@ -1109,6 +1109,35 @@ export default function App() {
     );
   }
 
+  // --- PROJECT TIMELINE CALCULATIONS ---
+  const activeTasksForSummary = tasks.filter(t => Number(t.durationDays) > 0 || t.manualStart || t.isParallel);
+  const activeDrawingsForSummary = drawings.filter(d => (d.durationDays !== undefined && Number(d.durationDays) > 0) || d.manualStart || d.isParallel);
+
+  const allStarts = [...activeTasksForSummary, ...activeDrawingsForSummary].map(x => x.scheduledStart).filter(Boolean) as string[];
+  const modelEnds = activeTasksForSummary.map(t => t.scheduledEnd).filter(Boolean) as string[];
+  const drawEnds = activeDrawingsForSummary.map(d => d.scheduledEnd).filter(Boolean) as string[];
+
+  const minStart = allStarts.length > 0 ? allStarts.reduce((min, curr) => curr < min ? curr : min, allStarts[0]) : null;
+  const maxModelEnd = modelEnds.length > 0 ? modelEnds.reduce((max, curr) => curr > max ? curr : max, modelEnds[0]) : null;
+  const maxDrawEnd = drawEnds.length > 0 ? drawEnds.reduce((max, curr) => curr > max ? curr : max, drawEnds[0]) : null;
+  
+  let maxGlobalEnd = null;
+  if (maxModelEnd && maxDrawEnd) maxGlobalEnd = maxModelEnd > maxDrawEnd ? maxModelEnd : maxDrawEnd;
+  else if (maxModelEnd) maxGlobalEnd = maxModelEnd;
+  else if (maxDrawEnd) maxGlobalEnd = maxDrawEnd;
+
+  let totalCalendarDays = 0;
+  let totalWorkingDays = 0;
+
+  if (minStart && maxGlobalEnd) {
+    totalWorkingDays = getWorkingDaysCount(minStart, maxGlobalEnd);
+    const startD = parseDate(minStart);
+    const endD = parseDate(maxGlobalEnd);
+    const diffTime = Math.abs(endD.getTime() - startD.getTime());
+    totalCalendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+
+
   return (
     <div className={`min-h-screen w-full max-w-full overflow-x-hidden font-sans antialiased transition-colors duration-200 ${
       isDarkMode ? 'bg-[#0A0A0C] text-slate-300' : 'bg-[#F8F9FA] text-slate-800'
@@ -1290,6 +1319,36 @@ export default function App() {
             </div>
 
           </div>
+        </div>
+
+          {/* PROJECT SUMMARY BANNER */}
+          <div className={`mt-6 rounded-2xl p-4 border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm transition-all ${
+            isDarkMode ? 'bg-[#0F1115] border-white/5' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex flex-wrap items-center gap-6 md:gap-12 w-full">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Inicio Global</span>
+                <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{minStart ? minStart.split('-').reverse().join('/') : '-'}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fin Modelado</span>
+                <span className={`text-sm font-semibold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{maxModelEnd ? maxModelEnd.split('-').reverse().join('/') : '-'}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fin Planimetría</span>
+                <span className={`text-sm font-semibold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{maxDrawEnd ? maxDrawEnd.split('-').reverse().join('/') : '-'}</span>
+              </div>
+              <div className="flex flex-col border-l pl-6 md:pl-12 border-slate-200 dark:border-white/10">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Días Laborales</span>
+                <span className={`text-lg font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>{totalWorkingDays} <span className="text-xs font-medium text-slate-500">días</span></span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Días Naturales</span>
+                <span className={`text-lg font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{totalCalendarDays} <span className="text-xs font-medium text-slate-500">días</span></span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
