@@ -1811,7 +1811,7 @@ export default function App() {
                   )}
                 </div>
                 <button
-                  onClick={handleClearDaysAndDates}
+                  disabled={!isEditor} onClick={handleClearDaysAndDates}
                   className={`px-3 py-1.5 border rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
                     confirmClear
                       ? 'border-rose-500 bg-rose-500/20 text-rose-300 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.2)]'
@@ -2399,7 +2399,7 @@ export default function App() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteTask(task.id)}
+                                  disabled={!isEditor} onClick={() => handleDeleteTask(task.id)} 
                                   className={`p-1 rounded-lg transition ${
                                     isDarkMode ? 'hover:bg-white/5 text-slate-400 hover:text-rose-400' : 'hover:bg-slate-100 text-slate-550 hover:text-rose-600'
                                   }`}
@@ -2565,7 +2565,7 @@ export default function App() {
                   Agregar Plano
                 </button>
                 <button
-                  onClick={handleClearDrawingDates}
+                  disabled={!isEditor} onClick={handleClearDrawingDates}
                   className={`px-3 py-1.5 border rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
                     confirmClearDrawings
                       ? 'border-rose-500 bg-rose-500/20 text-rose-300 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.2)]'
@@ -3107,7 +3107,7 @@ export default function App() {
                                     <input
                                       type="text"
                                       value={d.observations || ''}
-                                      onChange={(e) => handleUpdateDrawingField(d.id, 'observations', e.target.value)}
+                                      disabled={!isEditor} onChange={(e) => handleUpdateDrawingField(d.id, 'observations', e.target.value)}
                                       placeholder="Observaciones..."
                                       className={`w-full border rounded-lg py-1 px-1.5 focus:outline-none focus:border-amber-500 text-[11px] transition ${
                                         isDarkMode
@@ -3149,7 +3149,7 @@ export default function App() {
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => handleDeleteDrawing(d.id)}
+                                        disabled={!isEditor} onClick={() => handleDeleteDrawing(d.id)} 
                                         className={`p-1 rounded-lg transition ${
                                           isDarkMode ? 'hover:bg-rose-950/30 text-slate-400 hover:text-rose-400' : 'hover:bg-rose-50 text-slate-550 hover:text-rose-600'
                                         }`}
@@ -3917,7 +3917,6 @@ export default function App() {
                               <button
                                 type="button"
                                 disabled={!isEditor} onClick={() => handleDeleteAttachmentFromNewEntry(att.id)} className={!isEditor ? "hidden" : "absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 hover:bg-rose-600 text-white transition"}
-                                className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 hover:bg-rose-600 text-white transition"
                               >
                                 <X size={10} />
                               </button>
