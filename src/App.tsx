@@ -169,6 +169,7 @@ export default function App() {
   const [settings, setSettings] = useState<ProjectSettings>(DEFAULT_PROJECT_DATA.settings);
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
+  const [definitions, setDefinitions] = useState<ProjectDefinition[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -319,6 +320,7 @@ export default function App() {
           setDrawings(initializeDrawings(parsed.drawings || DEFAULT_PROJECT_DATA.drawings || []));
           setBimCategories(parsed.bimCategories || CATEGORIES);
           setDrawingSeries(parsed.drawingSeries || DRAWING_SERIES_OPTIONS);
+          setDefinitions(parsed.definitions || []);
           setLoading(false);
           return;
         } catch (e) {
@@ -334,6 +336,7 @@ export default function App() {
       setDrawings(initializeDrawings(DEFAULT_PROJECT_DATA.drawings || []));
       setBimCategories(CATEGORIES);
       setDrawingSeries(DRAWING_SERIES_OPTIONS);
+      setDefinitions([]);
       setLoading(false);
     }
 
@@ -352,6 +355,7 @@ export default function App() {
       drawings,
       bimCategories,
       drawingSeries,
+      definitions,
     };
     try {
       await Promise.allSettled([
@@ -426,6 +430,7 @@ export default function App() {
       drawings,
       bimCategories,
       drawingSeries,
+      definitions,
     };
     localStorage.setItem('revit_planner_project', JSON.stringify(currentData));
     
