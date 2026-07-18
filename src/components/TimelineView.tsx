@@ -8,6 +8,7 @@ interface TimelineViewProps {
   drawings: Drawing[];
   modelers: Modeler[];
   isDarkMode?: boolean;
+  isEditor?: boolean;
   onUpdateActivity: (id: string, type: 'task' | 'drawing', field: string, value: any) => void;
   onReorder?: (modelerId: string | null, items: { id: string, type: 'task' | 'drawing' }[]) => void;
   onUpdateBlockDates?: (blockActivities: { id: string; type: 'task' | 'drawing' }[], newDate: string, draggedId: string, newModelerId: string) => void;
@@ -191,7 +192,7 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
     return (
       <div 
         key={act.id}
-        draggable
+        draggable={isEditor}
         onDragStart={(e) => handleDragStart(e, act.id, act.type)}
         onDragEnd={handleDragEnd}
         className={`p-2.5 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all bg-white dark:bg-[#20242a] mb-2 last:mb-0 ${borderColor} ${isDraggingThis ? 'opacity-40 scale-95 border-dashed z-50' : 'opacity-100 scale-100 z-10'}`}

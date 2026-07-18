@@ -1925,7 +1925,8 @@ export default function App() {
                     }`}>
                       <input
                         type="number"
-                        min="0"
+                                  disabled={!isEditor}
+                                  min="0"
                         onWheel={(e) => (e.target as HTMLElement).blur()}
                         placeholder="Días"
                         id="bulk-duration-input"
@@ -2225,6 +2226,7 @@ export default function App() {
                               <div className="flex items-center justify-center gap-0.5">
                                 <input
                                   type="number"
+                                  disabled={!isEditor}
                                   min="0"
                                   onWheel={(e) => (e.target as HTMLElement).blur()}
                                   value={task.durationDays}
@@ -2386,7 +2388,7 @@ export default function App() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  disabled={!isEditor} onClick={() => {
                                     setEditingTask(task);
                                     setIsFormOpen(true);
                                   }}
@@ -2667,7 +2669,8 @@ export default function App() {
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Duración (días):</span>
                     <input
                       type="number"
-                      min="0"
+                                  disabled={!isEditor}
+                                  min="0"
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       placeholder="Ej. 5"
                       id="bulk-drawing-days-input"
@@ -2989,7 +2992,8 @@ export default function App() {
                                     <div className="flex items-center justify-center gap-0.5">
                                       <input
                                         type="number"
-                                        min="0"
+                                  disabled={!isEditor}
+                                  min="0"
                                         onWheel={(e) => (e.target as HTMLElement).blur()}
                                         value={d.durationDays !== undefined ? d.durationDays : 3}
                                         onChange={(e) => {
@@ -3139,7 +3143,7 @@ export default function App() {
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => handleStartEditDrawing(d)}
+                                        disabled={!isEditor} onClick={() => handleStartEditDrawing(d)}
                                         className={`p-1 rounded-lg transition ${
                                           isDarkMode ? 'hover:bg-amber-500/15 text-slate-400 hover:text-amber-500' : 'hover:bg-amber-50 text-slate-550 hover:text-amber-600'
                                         }`}
@@ -3177,6 +3181,7 @@ export default function App() {
         {/* TAB CONTENT: CALENDAR */}
         {activeTab === 'calendar' && (
           <CalendarView 
+            isEditor={isEditor}
             tasks={tasks} 
             drawings={drawings}
             modelers={modelers} 
@@ -3188,6 +3193,7 @@ export default function App() {
         {/* TAB CONTENT: TIMELINE */}
         {activeTab === 'timeline' && (
           <TimelineView 
+            isEditor={isEditor}
             tasks={tasks} 
             drawings={drawings} 
             modelers={modelers} 
@@ -3574,7 +3580,8 @@ export default function App() {
                   </label>
                   <input
                     type="number"
-                    min="0"
+                                  disabled={!isEditor}
+                                  min="0"
                     onWheel={(e) => (e.target as HTMLElement).blur()}
                     required
                     value={newDrawingDays}

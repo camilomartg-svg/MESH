@@ -14,10 +14,11 @@ interface CalendarViewProps {
   drawings?: Drawing[];
   modelers: Modeler[];
   isDarkMode?: boolean;
+  isEditor?: boolean;
   onUpdateActivity?: (id: string, type: 'task' | 'drawing', field: string, value: any) => void;
 }
 
-export default function CalendarView({ tasks, drawings = [], modelers, isDarkMode = false, onUpdateActivity }: CalendarViewProps) {
+export default function CalendarView({ tasks, drawings = [], modelers, isDarkMode = false, isEditor, onUpdateActivity }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 14)); // Start at July 2026
 
   // Filters
@@ -243,9 +244,9 @@ export default function CalendarView({ tasks, drawings = [], modelers, isDarkMod
                     {dayActivities.map((a) => (
                       <div
                         key={a.id}
-                        draggable
+                        draggable={isEditor}
                         onDragStart={e => handleDragStart(e, a.id, a.type)}
-                        onClick={() => setEditingActivity({ id: a.id, type: a.type })}
+                        onClick={() => isEditor && setEditingActivity({ id: a.id, type: a.type })}
                         className="text-[9px] font-medium py-0.5 px-1.5 rounded text-white leading-normal shadow-sm transition hover:brightness-110 cursor-pointer border border-white/20 hover:border-white relative group"
                         style={{ backgroundColor: getModelerColor(a.assigneeId) }}
                         title={`${a.name} (${getModelerName(a.assigneeId)})`}
@@ -339,7 +340,7 @@ export default function CalendarView({ tasks, drawings = [], modelers, isDarkMod
              isDarkMode ? 'bg-[#16191D] border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'
            }`}>
               <button 
-                onClick={() => setEditingActivity(null)} 
+                onClick={() => isEditor && setEditingActivity(null)} 
                 className="absolute top-4 right-4 p-1 rounded-md opacity-50 hover:opacity-100 hover:bg-slate-500/10 transition"
               >
                  <X size={16} />
@@ -392,7 +393,7 @@ export default function CalendarView({ tasks, drawings = [], modelers, isDarkMod
 
               <div className="mt-6 flex justify-end">
                  <button 
-                    onClick={() => setEditingActivity(null)}
+                    onClick={() => isEditor && setEditingActivity(null)}
                     className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-md transition-all active:scale-95"
                  >
                     Listo
