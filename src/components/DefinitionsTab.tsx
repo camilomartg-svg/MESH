@@ -9,9 +9,10 @@ interface DefinitionsTabProps {
   definitions: ProjectDefinition[];
   onUpdateDefinitions: (defs: ProjectDefinition[]) => void;
   isDarkMode: boolean;
+  isEditor: boolean;
 }
 
-export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateDefinitions, isDarkMode }: DefinitionsTabProps) {
+export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateDefinitions, isDarkMode, isEditor }: DefinitionsTabProps) {
   // Aggregate all notes and incidents
   const allNotes: { source: string; entry: DevLogEntry }[] = [];
   
@@ -118,9 +119,12 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
             <input
               type="text"
               value={newDefTitle}
+              disabled={!isEditor}
               onChange={(e) => setNewDefTitle(e.target.value)}
               placeholder="Ej. Espesor de vidrio para fachada, Tipo de luminaria pasillos..."
               className={`w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all ${
+                !isEditor ? 'opacity-50 cursor-not-allowed' : ''
+              } ${
                 isDarkMode 
                   ? 'bg-black/20 border border-white/10 text-white focus:border-indigo-500/50 focus:bg-black/40' 
                   : 'bg-white border border-slate-200 text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
@@ -128,10 +132,13 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
             />
             <textarea
               value={newDefDesc}
+              disabled={!isEditor}
               onChange={(e) => setNewDefDesc(e.target.value)}
               placeholder="Describe cuál fue la definición o detalles adicionales (opcional)..."
               rows={2}
               className={`w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all resize-none ${
+                !isEditor ? 'opacity-50 cursor-not-allowed' : ''
+              } ${
                 isDarkMode 
                   ? 'bg-black/20 border border-white/10 text-white focus:border-indigo-500/50 focus:bg-black/40' 
                   : 'bg-white border border-slate-200 text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
@@ -140,7 +147,9 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
             
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                <label className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  !isEditor ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   isDarkMode 
                     ? 'bg-white/5 hover:bg-white/10 text-slate-300' 
                     : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
@@ -150,7 +159,7 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
                     multiple
                     className="hidden"
                     onChange={handleFileUpload}
-                    disabled={isUploading}
+                    disabled={isUploading || !isEditor}
                     accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
                   />
                   {isUploading ? <RefreshCw size={16} className="animate-spin" /> : <Paperclip size={16} />}
@@ -169,7 +178,7 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
 
               <button
                 onClick={handleAddDefinition}
-                disabled={!newDefTitle.trim() || isUploading}
+                disabled={!newDefTitle.trim() || isUploading || !isEditor}
                 className="px-6 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus size={16} />
@@ -194,7 +203,8 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
               }`}>
                 <button
                   onClick={() => handleToggleDefinition(def.id)}
-                  className={`mt-1 shrink-0 ${def.isDefined ? 'text-emerald-500' : (isDarkMode ? 'text-slate-600' : 'text-slate-300')}`}
+                  disabled={!isEditor}
+                  className={`mt-1 shrink-0 ${def.isDefined ? 'text-emerald-500' : (isDarkMode ? 'text-slate-600' : 'text-slate-300')} ${!isEditor ? 'cursor-not-allowed opacity-50' : ''}`}
                 >
                   {def.isDefined ? <CheckCircle2 size={24} /> : <Circle size={24} />}
                 </button>
@@ -206,8 +216,9 @@ export default function DefinitionsTab({ tasks, drawings, definitions, onUpdateD
                     </h3>
                     <button
                       onClick={() => handleDeleteDefinition(def.id)}
+                      disabled={!isEditor}
                       className={`shrink-0 p-1 rounded-lg transition-colors ${
-                        isDarkMode ? 'text-slate-500 hover:bg-white/10 hover:text-rose-400' : 'text-slate-400 hover:bg-slate-200 hover:text-rose-500'
+                        !isEditor ? 'hidden' : isDarkMode ? 'text-slate-500 hover:bg-white/10 hover:text-rose-400' : 'text-slate-400 hover:bg-slate-200 hover:text-rose-500'
                       }`}
                     >
                       <X size={16} />

@@ -45,7 +45,9 @@ import {
   Search,
   ExternalLink,
   Upload,
-  Save
+  Save,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 export function getGoogleDrivePreviewUrl(url: string): string | null {
@@ -247,6 +249,29 @@ export default function App() {
     const saved = localStorage.getItem('mesh_theme');
     return saved ? saved === 'dark' : false; // Default to Light Mode as requested
   });
+
+  // Editor vs Viewer State
+  const [isEditor, setIsEditor] = useState<boolean>(() => sessionStorage.getItem('UNUM_EDITOR') === 'true');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+
+  const handleUnlock = () => {
+    if (passwordInput === 'UNUM2026**') {
+      sessionStorage.setItem('UNUM_EDITOR', 'true');
+      setIsEditor(true);
+      setShowPasswordModal(false);
+      setPasswordInput('');
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  };
+
+  const handleLock = () => {
+    sessionStorage.removeItem('UNUM_EDITOR');
+    setIsEditor(false);
+  };
 
   const toggleTheme = () => {
     setIsDarkMode(prev => {
@@ -1422,6 +1447,33 @@ export default function App() {
 
             {/* Theme Toggle & Project Global Start Date and Save Indicator */}
             <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+              {/* Editor/Viewer Toggle Button */}
+              {isEditor ? (
+                <button
+                  onClick={handleLock}
+                  className={`px-3 py-2 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold ${
+                    isDarkMode 
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' 
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                  }`}
+                  title="Bloquear sesión y volver al Modo Visor"
+                >
+                  <Unlock size={14} /> Modo Edición
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className={`px-3 py-2 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold ${
+                    isDarkMode 
+                      ? 'bg-[#16191D] border-white/10 hover:bg-white/5 text-slate-300' 
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm'
+                  }`}
+                  title="Desbloquear Modo Edición"
+                >
+                  <Lock size={14} /> Modo Visor
+                </button>
+              )}
+
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
@@ -1444,8 +1496,11 @@ export default function App() {
                 <input
                   type="date"
                   value={settings.startDate}
+                  disabled={!isEditor}
                   onChange={(e) => setSettings({ ...settings, startDate: e.target.value })}
                   className={`bg-transparent font-bold focus:outline-none cursor-pointer border-b border-dashed pb-0.5 ${
+                    !isEditor ? 'opacity-50 cursor-not-allowed border-transparent' : ''
+                  } ${
                     isDarkMode 
                       ? 'text-white border-white/20 focus:border-white' 
                       : 'text-slate-900 border-slate-300 focus:border-black'
@@ -1814,7 +1869,7 @@ export default function App() {
             </div>
 
             {/* Bulk Actions Panel */}
-            {selectedTaskIds.length > 0 && (
+            {isEditor && selectedTaskIds.length > 0 && (
               <div className={`border rounded-2xl p-4 shadow-lg flex flex-col gap-3 animate-fadeIn transition-colors ${
                 isDarkMode 
                   ? 'bg-amber-500/5 border-amber-500/20' 
@@ -2088,7 +2143,7 @@ export default function App() {
                                 )}
                                 <select
                                   value={task.assigneeId || ''}
-                                  onChange={(e) => {
+                                  disabled={!isEditor} onChange={(e) => {
                                     const val = e.target.value || null;
                                     handleUpdateTaskField(task.id, 'assigneeId', val);
                                   }}
@@ -2113,7 +2168,7 @@ export default function App() {
                              <div className="flex flex-col items-center gap-1">
                                <button
                                  type="button"
-                                 onClick={() => {
+                                 disabled={!isEditor} onClick={() => {
                                    const newIsParallel = !task.isParallel;
                                    setTasks(prev => prev.map(t => {
                                      if (t.id === task.id) {
@@ -2141,7 +2196,7 @@ export default function App() {
                                {task.isParallel && (
                                  <select
                                    value={task.parallelWithTaskId || ''}
-                                   onChange={(e) => {
+                                   disabled={!isEditor} onChange={(e) => {
                                      handleUpdateTaskField(task.id, 'parallelWithTaskId', e.target.value || null);
                                    }}
                                    className={`border rounded-md py-0.5 px-0.5 focus:outline-none focus:border-amber-500 font-semibold text-[8px] cursor-pointer transition max-w-[80px] ${
@@ -2173,7 +2228,7 @@ export default function App() {
                                   min="0"
                                   onWheel={(e) => (e.target as HTMLElement).blur()}
                                   value={task.durationDays}
-                                  onChange={(e) => {
+                                  disabled={!isEditor} onChange={(e) => {
                                     const valStr = e.target.value;
                                     const val = valStr === '' ? '' : Math.max(0, parseInt(valStr) || 0);
                                     handleUpdateTaskField(task.id, 'durationDays', val);
@@ -2193,7 +2248,7 @@ export default function App() {
                               <input
                                 type="checkbox"
                                 checked={task.status === 'Pendiente'}
-                                onChange={() => handleUpdateTaskField(task.id, 'status', 'Pendiente')}
+                                disabled={!isEditor} onChange={() => handleUpdateTaskField(task.id, 'status', 'Pendiente')}
                                 className={`rounded focus:ring-slate-500 w-3.5 h-3.5 cursor-pointer ${
                                   isDarkMode
                                     ? 'border-white/10 bg-[#16191D] text-slate-500'
@@ -2207,7 +2262,7 @@ export default function App() {
                               <input
                                 type="checkbox"
                                 checked={task.status === 'En desarrollo'}
-                                onChange={() => handleUpdateTaskField(task.id, 'status', task.status === 'En desarrollo' ? 'Pendiente' : 'En desarrollo')}
+                                disabled={!isEditor} onChange={() => handleUpdateTaskField(task.id, 'status', task.status === 'En desarrollo' ? 'Pendiente' : 'En desarrollo')}
                                 className={`rounded focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer ${
                                   isDarkMode
                                     ? 'border-white/10 bg-[#16191D] text-amber-500'
@@ -2221,7 +2276,7 @@ export default function App() {
                               <input
                                 type="checkbox"
                                 checked={task.status === 'Realizado' || task.status === 'Modelado'}
-                                onChange={() => handleUpdateTaskField(task.id, 'status', (task.status === 'Realizado' || task.status === 'Modelado') ? 'Pendiente' : 'Realizado')}
+                                disabled={!isEditor} onChange={() => handleUpdateTaskField(task.id, 'status', (task.status === 'Realizado' || task.status === 'Modelado') ? 'Pendiente' : 'Realizado')}
                                 className={`rounded focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer ${
                                   isDarkMode
                                     ? 'border-white/10 bg-[#16191D] text-emerald-500'
@@ -2235,7 +2290,7 @@ export default function App() {
                               <input
                                 type="checkbox"
                                 checked={task.status === 'N/A'}
-                                onChange={() => handleUpdateTaskField(task.id, 'status', task.status === 'N/A' ? 'Pendiente' : 'N/A')}
+                                disabled={!isEditor} onChange={() => handleUpdateTaskField(task.id, 'status', task.status === 'N/A' ? 'Pendiente' : 'N/A')}
                                 className={`rounded focus:ring-slate-500 w-3.5 h-3.5 cursor-pointer ${
                                   isDarkMode
                                     ? 'border-white/10 bg-[#16191D] text-slate-500'
@@ -2265,7 +2320,7 @@ export default function App() {
                                 {task.manualStart && (
                                   <button
                                     type="button"
-                                    onClick={() => handleUpdateTaskField(task.id, 'manualStart', null)}
+                                    disabled={!isEditor} onClick={() => handleUpdateTaskField(task.id, 'manualStart', null)}
                                     className="text-rose-500 hover:text-rose-400 font-extrabold text-[9px] px-0.5 shrink-0"
                                     title="Quitar fecha manual y volver a automático"
                                   >
@@ -2298,7 +2353,7 @@ export default function App() {
                               <input
                                 type="text"
                                 value={task.notes || ''}
-                                onChange={(e) => handleUpdateTaskField(task.id, 'notes', e.target.value)}
+                                disabled={!isEditor} onChange={(e) => handleUpdateTaskField(task.id, 'notes', e.target.value)}
                                 placeholder="Observaciones..."
                                 className={`w-full border rounded-lg py-1 px-1.5 focus:outline-none focus:border-amber-500 text-[11px] transition ${
                                   isDarkMode
@@ -2553,7 +2608,7 @@ export default function App() {
             </div>
 
             {/* Drawing Bulk Actions Panel */}
-            {selectedDrawingIds.length > 0 && (
+            {isEditor && selectedDrawingIds.length > 0 && (
               <div className={`border rounded-2xl p-4 shadow-lg flex flex-col gap-3 animate-fadeIn transition-colors ${
                 isDarkMode 
                   ? 'bg-amber-500/5 border-amber-500/20' 
@@ -2855,7 +2910,7 @@ export default function App() {
                                       )}
                                       <select
                                         value={d.assigneeId || ''}
-                                        onChange={(e) => handleUpdateDrawingField(d.id, 'assigneeId', e.target.value || null)}
+                                        disabled={!isEditor} onChange={(e) => handleUpdateDrawingField(d.id, 'assigneeId', e.target.value || null)}
                                         className={`border rounded-lg py-0.5 px-1 focus:outline-none focus:border-amber-500 font-semibold text-[10px] cursor-pointer transition max-w-[90px] ${
                                           isDarkMode
                                             ? 'bg-[#16191D] border-white/10 text-slate-300 hover:text-white'
@@ -2906,7 +2961,7 @@ export default function App() {
                                       {d.isParallel && (
                                         <select
                                           value={d.parallelWithDrawingId || ''}
-                                          onChange={(e) => handleUpdateDrawingField(d.id, 'parallelWithDrawingId', e.target.value || null)}
+                                          disabled={!isEditor} onChange={(e) => handleUpdateDrawingField(d.id, 'parallelWithDrawingId', e.target.value || null)}
                                           className={`border rounded-md py-0.5 px-0.5 focus:outline-none focus:border-amber-500 font-semibold text-[8px] cursor-pointer transition max-w-[80px] ${
                                             isDarkMode
                                               ? 'bg-[#16191D] border-white/10 text-slate-300 hover:text-white'
@@ -2956,7 +3011,7 @@ export default function App() {
                                     <input
                                       type="checkbox"
                                       checked={d.status === 'Pendiente'}
-                                      onChange={() => handleUpdateDrawingField(d.id, 'status', 'Pendiente')}
+                                      disabled={!isEditor} onChange={() => handleUpdateDrawingField(d.id, 'status', 'Pendiente')}
                                       className={`rounded focus:ring-slate-500 w-3.5 h-3.5 cursor-pointer ${
                                         isDarkMode
                                           ? 'border-white/10 bg-[#16191D] text-slate-500'
@@ -2970,7 +3025,7 @@ export default function App() {
                                     <input
                                       type="checkbox"
                                       checked={d.status === 'En desarrollo'}
-                                      onChange={() => handleUpdateDrawingField(d.id, 'status', d.status === 'En desarrollo' ? 'Pendiente' : 'En desarrollo')}
+                                      disabled={!isEditor} onChange={() => handleUpdateDrawingField(d.id, 'status', d.status === 'En desarrollo' ? 'Pendiente' : 'En desarrollo')}
                                       className={`rounded focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer ${
                                         isDarkMode
                                           ? 'border-white/10 bg-[#16191D] text-amber-500'
@@ -2984,7 +3039,7 @@ export default function App() {
                                     <input
                                       type="checkbox"
                                       checked={d.status === 'Realizado'}
-                                      onChange={() => handleUpdateDrawingField(d.id, 'status', d.status === 'Realizado' ? 'Pendiente' : 'Realizado')}
+                                      disabled={!isEditor} onChange={() => handleUpdateDrawingField(d.id, 'status', d.status === 'Realizado' ? 'Pendiente' : 'Realizado')}
                                       className={`rounded focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer ${
                                         isDarkMode
                                           ? 'border-white/10 bg-[#16191D] text-emerald-500'
@@ -2998,7 +3053,7 @@ export default function App() {
                                     <input
                                       type="checkbox"
                                       checked={d.status === 'N/A'}
-                                      onChange={() => handleUpdateDrawingField(d.id, 'status', d.status === 'N/A' ? 'Pendiente' : 'N/A')}
+                                      disabled={!isEditor} onChange={() => handleUpdateDrawingField(d.id, 'status', d.status === 'N/A' ? 'Pendiente' : 'N/A')}
                                       className={`rounded focus:ring-slate-500 w-3.5 h-3.5 cursor-pointer ${
                                         isDarkMode
                                           ? 'border-white/10 bg-[#16191D] text-slate-500'
@@ -3028,7 +3083,7 @@ export default function App() {
                                       {d.manualStart && (
                                         <button
                                           type="button"
-                                          onClick={() => handleUpdateDrawingField(d.id, 'manualStart', null)}
+                                          disabled={!isEditor} onClick={() => handleUpdateDrawingField(d.id, 'manualStart', null)}
                                           className="text-rose-500 hover:text-rose-400 font-extrabold text-[9px] px-0.5 shrink-0"
                                           title="Quitar fecha manual y volver a automático"
                                         >
@@ -3143,7 +3198,7 @@ export default function App() {
 
         {/* TAB CONTENT: MODELERS */}
         {activeTab === 'modelers' && (
-          <ModelersSettings modelers={modelers} onUpdateModelers={setModelers} isDarkMode={isDarkMode} />
+          <ModelersSettings modelers={modelers} onUpdateModelers={setModelers} isDarkMode={isDarkMode} isEditor={isEditor} />
         )}
 
         {/* TAB CONTENT: EMAIL SYNC */}
@@ -3156,6 +3211,7 @@ export default function App() {
             onUpdateSettings={setSettings}
             onTriggerEmail={handleTriggerEmail}
             isDarkMode={isDarkMode}
+            isEditor={isEditor}
           />
         )}
 
@@ -3170,6 +3226,7 @@ export default function App() {
               setHasUnsavedChanges(true);
             }}
             isDarkMode={isDarkMode}
+            isEditor={isEditor}
           />
         )}
       </main>
@@ -3666,7 +3723,7 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#0A0C0E] rounded-xl">
                     <button
                       type="button"
-                      onClick={() => setNewEntryType('nota')}
+                      disabled={!isEditor} onClick={() => setNewEntryType('nota')}
                       className={`flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition uppercase ${
                         newEntryType === 'nota'
                           ? 'bg-amber-500 text-black shadow'
@@ -3678,7 +3735,7 @@ export default function App() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setNewEntryType('incidencia')}
+                      disabled={!isEditor} onClick={() => setNewEntryType('incidencia')}
                       className={`flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition uppercase ${
                         newEntryType === 'incidencia'
                           ? 'bg-rose-500 text-white shadow'
@@ -3698,7 +3755,7 @@ export default function App() {
                       </label>
                       <input
                         type="text"
-                        value={newEntryTitle}
+                        disabled={!isEditor} value={newEntryTitle}
                         onChange={(e) => setNewEntryTitle(e.target.value)}
                         placeholder={
                           newEntryType === 'nota'
@@ -3722,7 +3779,7 @@ export default function App() {
                         Descripción detallada:
                       </label>
                       <textarea
-                        value={newEntryDescription}
+                        disabled={!isEditor} value={newEntryDescription}
                         onChange={(e) => setNewEntryDescription(e.target.value)}
                         placeholder={
                           newEntryType === 'nota'
@@ -3857,7 +3914,7 @@ export default function App() {
                               )}
                               <button
                                 type="button"
-                                onClick={() => handleDeleteAttachmentFromNewEntry(att.id)}
+                                disabled={!isEditor} onClick={() => handleDeleteAttachmentFromNewEntry(att.id)} className={!isEditor ? "hidden" : "absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 hover:bg-rose-600 text-white transition"}
                                 className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 hover:bg-rose-600 text-white transition"
                               >
                                 <X size={10} />
@@ -3874,7 +3931,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleAddDevEntry}
-                      disabled={!newEntryDescription.trim()}
+                      disabled={!isEditor || !newEntryDescription.trim()}
                       className={`px-5 py-2.5 rounded-xl text-xs font-extrabold uppercase transition-all shadow cursor-pointer ${
                         !newEntryDescription.trim()
                           ? 'opacity-50 cursor-not-allowed bg-slate-300 text-slate-500 dark:bg-white/5 dark:text-slate-500'
@@ -4142,6 +4199,60 @@ export default function App() {
             className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-white/10 animate-scaleUp"
             referrerPolicy="no-referrer"
           />
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${isDarkMode ? 'bg-[#0F1115] border border-white/10' : 'bg-white'}`}>
+            <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              <Lock size={20} className={isDarkMode ? 'text-indigo-400' : 'text-indigo-600'} />
+              Desbloquear Edición
+            </h3>
+            <p className={`text-sm mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              Ingresa la contraseña para realizar cambios en el cronograma y definiciones.
+            </p>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => {
+                setPasswordInput(e.target.value);
+                setPasswordError(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleUnlock();
+              }}
+              placeholder="Contraseña..."
+              autoFocus
+              className={`w-full px-4 py-2.5 rounded-xl text-sm outline-none mb-2 transition-all ${
+                isDarkMode 
+                  ? 'bg-black/20 border border-white/10 text-white focus:border-indigo-500/50' 
+                  : 'bg-white border border-slate-200 text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
+              }`}
+            />
+            {passwordError && <p className="text-xs text-rose-500 mb-4">Contraseña incorrecta.</p>}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordInput('');
+                  setPasswordError(false);
+                }}
+                className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
+                  isDarkMode ? 'bg-white/5 hover:bg-white/10 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleUnlock}
+                className="flex-1 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold transition-colors shadow-lg shadow-indigo-500/25"
+              >
+                Desbloquear
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

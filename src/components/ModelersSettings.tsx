@@ -6,6 +6,7 @@ interface ModelersSettingsProps {
   modelers: Modeler[];
   onUpdateModelers: (modelers: Modeler[]) => void;
   isDarkMode?: boolean;
+  isEditor?: boolean;
 }
 
 const PRESET_COLORS = [
@@ -92,7 +93,7 @@ export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMod
 
         <button
           onClick={handleAddModeler}
-          disabled={modelers.length >= 8}
+          disabled={!isEditor || modelers.length >= 8}
           className={`flex items-center gap-2 px-4 py-2 font-extrabold uppercase tracking-widest text-[11px] rounded-xl transition shadow-md disabled:opacity-40 disabled:cursor-not-allowed ${
             isDarkMode 
               ? 'bg-white hover:bg-slate-200 text-black shadow-white/5' 
@@ -127,7 +128,7 @@ export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMod
                 <input
                   type="text"
                   value={modeler.name}
-                  onChange={(e) => handleUpdateName(modeler.id, e.target.value)}
+                  disabled={!isEditor} onChange={(e) => handleUpdateName(modeler.id, e.target.value)}
                   className={`w-full font-semibold border-b border-transparent focus:border-amber-500 focus:outline-none py-0.5 text-sm bg-transparent transition ${
                     isDarkMode ? 'text-white hover:border-white/10' : 'text-slate-900 hover:border-slate-200'
                   }`}
@@ -136,7 +137,7 @@ export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMod
               </div>
 
               <button
-                onClick={() => handleToggleActive(modeler.id)}
+                disabled={!isEditor} onClick={() => handleToggleActive(modeler.id)}
                 title={modeler.active ? 'Desactivar Modelador' : 'Activar Modelador'}
                 className={`p-2 rounded-xl border transition ${
                   modeler.active
@@ -159,7 +160,7 @@ export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMod
                 {PRESET_COLORS.map((c) => (
                   <button
                     key={c}
-                    onClick={() => handleChangeColor(modeler.id, c)}
+                    disabled={!isEditor} onClick={() => handleChangeColor(modeler.id, c)}
                     className="w-5 h-5 rounded-full border border-black/30 shadow-sm hover:scale-110 active:scale-95 transition relative flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: c }}
                   >
@@ -172,10 +173,10 @@ export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMod
             </div>
 
             {/* Remove footer action */}
-            {modelers.length > 1 && (
+            {isEditor && modelers.length > 1 && (
               <div className="mt-4 pt-3 flex justify-end">
                 <button
-                  onClick={() => handleRemoveModeler(modeler.id)}
+                  disabled={!isEditor} onClick={() => handleRemoveModeler(modeler.id)}
                   className="text-xs text-rose-400 hover:text-rose-300 hover:underline transition"
                 >
                   Remover Modelador

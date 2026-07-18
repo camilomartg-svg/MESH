@@ -10,6 +10,7 @@ interface EmailSyncProps {
   onUpdateSettings: (settings: ProjectSettings) => void;
   onTriggerEmail: (to: string, subject: string, body: string) => Promise<any>;
   isDarkMode?: boolean;
+  isEditor?: boolean;
 }
 
 export default function EmailSync({
