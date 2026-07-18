@@ -1712,7 +1712,7 @@ export default function App() {
               }`}
             >
               <Users size={16} />
-              Modeladores ({modelers.length})
+              Equipo ({modelers.length})
             </button>
             <button
               onClick={() => setActiveTab('email')}
@@ -2304,6 +2304,7 @@ export default function App() {
                               <div className="flex items-center gap-0.5">
                                 <input
                                   type="date"
+                                  disabled={!isEditor}
                                   value={localDates[task.id] !== undefined ? localDates[task.id] : (task.manualStart || task.scheduledStart || '')}
                                   onChange={(e) => handleDebouncedDateChange(task.id, 'task', e.target.value)}
                                   onBlur={(e) => handleDateBlur(task.id, 'task', e.target.value)}
@@ -2932,7 +2933,7 @@ export default function App() {
                                     <div className="flex flex-col gap-1 items-center justify-center">
                                       <button
                                         type="button"
-                                        onClick={() => {
+                                        disabled={!isEditor} onClick={() => {
                                           const updated = drawings.map(x => {
                                             if (x.id === d.id) {
                                               const nextParallel = !x.isParallel;
@@ -3067,6 +3068,7 @@ export default function App() {
                                     <div className="flex items-center gap-0.5">
                                       <input
                                         type="date"
+                                        disabled={!isEditor}
                                         value={localDates[d.id] !== undefined ? localDates[d.id] : (d.manualStart || d.scheduledStart || '')}
                                         onChange={(e) => handleDebouncedDateChange(d.id, 'drawing', e.target.value)}
                                         onBlur={(e) => handleDateBlur(d.id, 'drawing', e.target.value)}

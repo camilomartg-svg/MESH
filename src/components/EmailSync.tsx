@@ -21,6 +21,7 @@ export default function EmailSync({
   onUpdateSettings,
   onTriggerEmail,
   isDarkMode = true,
+  isEditor,
 }: EmailSyncProps) {
   const [activeTab, setActiveTab] = useState<'status' | 'config' | 'logs'>('status');
   

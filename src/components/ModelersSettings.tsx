@@ -20,7 +20,7 @@ const PRESET_COLORS = [
   '#ca8a04', // Yellow-600
 ];
 
-export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMode = true }: ModelersSettingsProps) {
+export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMode = true, isEditor }: ModelersSettingsProps) {
   
   const handleToggleActive = (id: string) => {
     const updated = modelers.map(m => {
@@ -84,7 +84,7 @@ export default function ModelersSettings({ modelers, onUpdateModelers, isDarkMod
             <Users size={22} />
           </div>
           <div>
-            <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Cargar Modeladores Revit</h2>
+            <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Gestionar Equipo</h2>
             <p className="text-xs text-slate-500">
               Define cuántas personas van a modelar. Cada modelador activo procesará su lista de tareas asignadas secuencialmente.
             </p>
