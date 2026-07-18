@@ -29,7 +29,7 @@ type UnifiedActivity = {
   parallelWithId: string | null;
 };
 
-export default function TimelineView({ tasks, drawings, modelers, isDarkMode = false, onUpdateActivity, onUpdateBlockDates }: TimelineViewProps) {
+export default function TimelineView({ tasks, drawings, modelers, isDarkMode = false, isEditor, onUpdateActivity, onUpdateBlockDates }: TimelineViewProps) {
   const [colorMode, setColorMode] = useState<'activity' | 'category'>('activity');
   const [draggedItem, setDraggedItem] = useState<{ id: string, type: 'task' | 'drawing' } | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ colId: string, dateStr: string } | null>(null);

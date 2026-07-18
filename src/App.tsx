@@ -1840,7 +1840,7 @@ export default function App() {
                   </button>
                 )}
                 <button
-                  onClick={() => setIsCategoryManagerOpen(true)}
+                  disabled={!isEditor} onClick={() => setIsCategoryManagerOpen(true)}
                   className={`px-3 py-1.5 border rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                     isDarkMode
                       ? 'border-white/10 bg-transparent hover:bg-white/5 text-slate-300'
@@ -2596,7 +2596,7 @@ export default function App() {
                   </button>
                 )}
                 <button
-                  onClick={() => setIsSeriesManagerOpen(true)}
+                  disabled={!isEditor} onClick={() => setIsSeriesManagerOpen(true)}
                   className={`px-3 py-1.5 border rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                     isDarkMode
                       ? 'border-white/10 bg-transparent hover:bg-white/5 text-slate-300'
