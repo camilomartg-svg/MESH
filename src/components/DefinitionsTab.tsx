@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Task, Drawing, ProjectDefinition, DevLogEntry, MediaAttachment } from '../types';
-import { FileText, AlertCircle, CheckCircle2, Circle, Upload, Paperclip, X, Image as ImageIcon, Video, Plus, Save, ExternalLink } from 'lucide-react';
+import { FileText, AlertCircle, CheckCircle2, Circle, Upload, Paperclip, X, Image as ImageIcon, Video, Plus, Save, ExternalLink, RefreshCw } from 'lucide-react';
 import { uploadFileToDrive } from '../utils/firebase';
 
 interface DefinitionsTabProps {
