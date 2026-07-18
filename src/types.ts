@@ -93,6 +93,15 @@ export interface Drawing {
   activationTimestamp?: number;
 }
 
+export interface ProjectDefinition {
+  id: string;
+  title: string;
+  description: string;
+  isDefined: boolean;
+  attachments: MediaAttachment[];
+  createdAt: string;
+}
+
 export interface ProjectData {
   tasks: Task[];
   modelers: Modeler[];
@@ -101,4 +110,5 @@ export interface ProjectData {
   drawings?: Drawing[];
   bimCategories?: string[];
   drawingSeries?: string[];
+  definitions?: ProjectDefinition[];
 }

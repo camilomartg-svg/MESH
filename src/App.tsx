@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Fragment } from 'react';
-import { Task, Modeler, ProjectSettings, EmailLog, BimCategory, ProjectData, Drawing, DevLogEntry, DevLogType, MediaAttachment, DevNotesData } from './types';
+import { Task, Modeler, ProjectSettings, EmailLog, BimCategory, ProjectData, Drawing, DevLogEntry, DevLogType, MediaAttachment, DevNotesData, ProjectDefinition } from './types';
 import { calculateUnifiedSchedule, formatDateKey, addWorkingDays, getWorkingDaysCount, parseDate } from './utils/colombiaCalendar';
 import { DEFAULT_PROJECT_DATA, getInitialTaskIdForDrawing } from './utils/defaultData';
 import { 
@@ -13,6 +13,7 @@ import TimelineView from './components/TimelineView';
 import ModelersSettings from './components/ModelersSettings';
 import EmailSync from './components/EmailSync';
 import DrawingDatePicker from './components/DrawingDatePicker';
+import DefinitionsTab from './components/DefinitionsTab';
 import { 
   CheckSquare, 
   Square, 
@@ -150,7 +151,7 @@ const DRAWING_SERIES_OPTIONS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'checklist' | 'planimetria' | 'calendar' | 'timeline' | 'modelers' | 'email'>('checklist');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'planimetria' | 'calendar' | 'timeline' | 'modelers' | 'email' | 'definitions'>('checklist');
   const [selectedCategory, setSelectedCategory] = useState<string | 'TODOS'>('TODOS');
   const [selectedDrawingSeries, setSelectedDrawingSeries] = useState<string | 'TODAS'>('TODAS');
   const [taskSearchQuery, setTaskSearchQuery] = useState('');
@@ -278,6 +279,7 @@ export default function App() {
           setDrawings(initializeDrawings(fbData.drawings || DEFAULT_PROJECT_DATA.drawings || []));
           setBimCategories(fbData.bimCategories || CATEGORIES);
           setDrawingSeries(fbData.drawingSeries || DRAWING_SERIES_OPTIONS);
+          setDefinitions(fbData.definitions || []);
           setLoading(false);
           return;
         }
@@ -1665,6 +1667,17 @@ export default function App() {
               {delayedTasksCount > 0 && (
                 <span className="w-2 h-2 rounded-full bg-rose-500 block animate-bounce" />
               )}
+            </button>
+            <button
+              onClick={() => setActiveTab('definitions')}
+              className={`pb-4 px-1 border-b-2 font-bold text-sm transition-all flex items-center gap-2 ${
+                activeTab === 'definitions'
+                  ? (isDarkMode ? 'border-white text-white' : 'border-slate-950 text-slate-950')
+                  : (isDarkMode ? 'border-transparent text-slate-500 hover:text-slate-300 hover:border-white/10' : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200')
+              }`}
+            >
+              <FileText size={16} />
+              Notas y Definiciones
             </button>
           </nav>
         </div>
@@ -3137,6 +3150,20 @@ export default function App() {
             emailLogs={emailLogs}
             onUpdateSettings={setSettings}
             onTriggerEmail={handleTriggerEmail}
+            isDarkMode={isDarkMode}
+          />
+        )}
+
+        {/* TAB CONTENT: DEFINITIONS */}
+        {activeTab === 'definitions' && (
+          <DefinitionsTab
+            tasks={tasks}
+            drawings={drawings}
+            definitions={definitions}
+            onUpdateDefinitions={(newDefs) => {
+              setDefinitions(newDefs);
+              setHasUnsavedChanges(true);
+            }}
             isDarkMode={isDarkMode}
           />
         )}
