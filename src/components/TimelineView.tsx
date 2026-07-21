@@ -220,6 +220,7 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
         {/* Botón Paralelo e Indicador (Dropdown) */}
         <div className="flex items-center gap-1 mt-2">
            <select
+             disabled={!isEditor}
              value={act.isParallel ? (act.parallelWithId || 'yes') : 'no'}
              onClick={e => e.stopPropagation()}
              onChange={(e) => {
@@ -236,7 +237,7 @@ export default function TimelineView({ tasks, drawings, modelers, isDarkMode = f
                  }
                }
              }}
-             className={`pl-1.5 pr-5 py-0.5 rounded text-[10px] font-bold transition shadow-sm border appearance-none cursor-pointer focus:outline-none ${
+             className={`pl-1.5 pr-5 py-0.5 rounded text-[10px] font-bold transition shadow-sm border appearance-none focus:outline-none ${!isEditor ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${
                act.isParallel 
                  ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
                  : (isDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 border-slate-200')
